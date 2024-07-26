@@ -4,7 +4,7 @@ DECLARE
     schema TEXT;
     view_name TEXT;
     drop_query TEXT;
-    dropped_views TEXT[];
+    dropped_views  TEXT[] := '{}';
 BEGIN
     FOREACH schema IN ARRAY schemas LOOP
         FOR view_name IN
@@ -12,7 +12,7 @@ BEGIN
             FROM INFORMATION_SCHEMA.views
             WHERE table_schema = schema
         LOOP
-            drop_query := 'DROP VIEW ' || quote_ident(schema) || '.' || quote_ident(view_name);
+            drop_query := 'DROP VIEW ' || quote_ident(schema) || '.' || quote_ident(view_name) || ' CASCADE';
             EXECUTE drop_query;
             dropped_views := array_append(dropped_views, schema || '.' || view_name);
         END LOOP;

@@ -5,7 +5,7 @@ DECLARE
     function_name TEXT;
     argument_list TEXT;
     drop_query TEXT;
-    dropped_functions TEXT[];
+    dropped_functions TEXT[] := '{}';
 BEGIN
     FOREACH schema IN ARRAY schemas LOOP
         FOR function_name, argument_list IN

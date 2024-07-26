@@ -14,6 +14,7 @@ function generate (files) {
         let data = fs.readFileSync(file, 'utf8');
         let table_name = null; 
         let primary_key = [];
+        let create_table = false;
 
         
         while ((m = REG.table_name.exec(data)) !== null) {
@@ -22,6 +23,16 @@ function generate (files) {
             }
             table_name = m?.groups?.name;    
         }
+
+        if (!table_name)
+            continue;
+       
+        if (MAIN.tables.findIndex('name', table_name) === -1) {
+            MAIN.tables.push({ name: table_name }); 
+            create_table = true;
+        }
+
+        let table = MAIN.tables.findItem('name', table_name);
 
         
         // primary key
@@ -39,10 +50,16 @@ function generate (files) {
             out_primary_keys.push(`SELECT create_constraint_if_not_exists('${short_table_name}', '${short_table_name}_pkey', 'ALTER TABLE ${table_name} ADD PRIMARY KEY (${primary_key.map(col => `"${col}"`).join(', ')});');`);
         }
 
+        table[ 'columns' ] = table[ 'columns' ] || [];
         // columns
         while ((m = REG.regex_columns.exec(data)) !== null) {
             let name = m?.groups?.name;
             let type = m?.groups?.type;
+
+            if (table[ 'columns' ].findIndex('name', name) !== -1) {
+                table[ 'columns' ].push({ name, type });
+            } 
+            
             columns[name] = type;
             out_columns.push(`ALTER TABLE ${table_name} ADD COLUMN IF NOT EXISTS "${name}" ${type};`);
             
@@ -55,7 +72,8 @@ function generate (files) {
             }
         };
 
-        out_tables.push(`CREATE TABLE IF NOT EXISTS ${table_name} (${primary_key.map(col => `"${col}" ${columns[col]}`).join(', ')});`);
+        if (create_table)
+            out_tables.push(`CREATE TABLE IF NOT EXISTS ${table_name} (${primary_key.map(col => `"${col}" ${columns[col]}`).join(', ')});`);
 
         // find constraints
         let end_constraint = '';
@@ -80,11 +98,30 @@ function generate (files) {
         }
 
     };
+
     let create_constraint_if_not_exists = fs.readFileSync(PATH.join(__dirname, 'sql', 'create_constraint_if_not_exists.sql'), 'utf8') + '\n';
 
-    let output_array = [ create_constraint_if_not_exists ].concat(out_tables).concat(out_columns).concat(out_primary_keys).concat(drop_all_constrains()).
-        concat(out_constraints).concat(out_end_constraints);
-    return output_array.join('\n-- step\n');
+    let create = [
+        create_constraint_if_not_exists,
+        ...out_tables,
+        ...out_columns,
+        ...out_primary_keys,
+    ];
+    
+    let drop_constraints = drop_all_constrains();
+    
+    let constraints = [
+        ...out_constraints,
+        ...out_end_constraints
+    ];
+
+
+    return {
+        create,
+        constraints,
+        drop_constraints
+    };
+
 };
 
 

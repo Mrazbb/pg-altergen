@@ -5,35 +5,27 @@ const path = require('path');
 
 
 function generate (files) {
+    let drop = [];
+    let create = [];
+    // DROP VIEWS
+    drop.push(fs.readFileSync(PATH.join(__dirname, 'sql', 'drop_all_views.sql'), 'utf8'));
+    drop.push(`SELECT drop_all_views(ARRAY[${MAIN.schemas.map(schema => `'${schema.name}'`).join(', ')}]);`);
+    drop.push(`DROP FUNCTION drop_all_views(text[]);`); 
 
-    let others_create = [];
+    // DROP FUNCTIONS
+    drop.push(fs.readFileSync(PATH.join(__dirname, 'sql', 'drop_all_functions.sql'), 'utf8'));
+    drop.push(`SELECT drop_all_functions(ARRAY[${MAIN.schemas.map(schema => `'${schema.name}'`).join(', ')}]);`);
+    drop.push(`DROP FUNCTION drop_all_functions(text[]);`);
+    
+    // DROP PROCEDURES
 
     for (let i = 0; i < files.length; i++) {
         let file_path = files[ i ];
-
         let file = fs.readFileSync(file_path, 'utf8');
-        let file_name = path.basename(file_path);
-        let split_name = file_name.split('.');
-        let schema = split_name[0].replace(/^\d+_/, '');
-        let name = split_name[1];
-
-        // if (split_name[1].startsWith('fn')) {
-        //     others_create.push(comment);
-        // }
-
-        // if (split_name[1].startsWith('view')) {
-        //     others_create.push(comment);
-        // }
-
-        // if (split_name[1].startsWith('procedure')) {
-        //     others_create.push(comment);
-        // }
-
-        others_create.push(file);
+        create.push(file);
     }
-
-    // return others_create.join('\n\n');
-    return others_create.join('\n' + '-- step' + '\n');
+    
+    return {create, drop};
 
 }
 module.exports.generate = generate;
