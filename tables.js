@@ -24,6 +24,8 @@ function generate (files) {
             table_name = m?.groups?.name;    
         }
 
+        console.log('file', file, table_name);
+
         if (!table_name)
             continue;
        
@@ -51,14 +53,18 @@ function generate (files) {
         }
 
         table[ 'columns' ] = table[ 'columns' ] || [];
+        
+
         // columns
         while ((m = REG.regex_columns.exec(data)) !== null) {
             let name = m?.groups?.name;
             let type = m?.groups?.type;
 
-            if (table[ 'columns' ].findIndex('name', name) !== -1) {
+            if (table[ 'columns' ].findIndex('name', name) === -1) {
                 table[ 'columns' ].push({ name, type });
-            } 
+            } else {
+                continue;
+            }
             
             columns[name] = type;
             out_columns.push(`ALTER TABLE ${table_name} ADD COLUMN IF NOT EXISTS "${name}" ${type};`);

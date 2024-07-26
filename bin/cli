@@ -7,6 +7,7 @@ const tables = require('../tables');
 const files = require('../files');
 const others = require('../others');
 const insert = require('../insert');
+const indexes = require('../indexes');
 const fs = require('fs');
 const ARGS = process.argv; // TEST: ['-', '-', 'CMD']
 const DIR = process.cwd();
@@ -29,7 +30,7 @@ async function load(args) {
 	}
 
 	if(!config['config']){
-		config['config'] = 'migrate.json';
+		config['config'] = 'altergen.json';
 	}
 	
 	let obj = F.Fs.readFileSync(config[ 'config' ], 'utf8');
@@ -82,6 +83,10 @@ function generate () {
 		...others_res.create
 	].join('\n-- step\n') + '\n-- step\n';
 	
+	// INDEXES
+	let indexfiles = files.listfiles('tables', 'all');
+	alter += indexes.generate(indexfiles) + '\n-- step\n';
+	
 	// INSERTS
 	let insertfiles = files.listfiles('inserts', 'all');
 	alter += insert.generate(insertfiles);
@@ -94,6 +99,7 @@ function generate () {
 	for (let key in config_copy) {
 		note += `-- ${key}: ${JSON.stringify(config_copy[ key ])}\n`;
 	}
+	
 
 	// OUTPUT
 	fs.writeFileSync(config['outputFile'], note + '\n' + alter + '\n' + note);

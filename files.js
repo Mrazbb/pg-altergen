@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const sql_directory = path.join(__dirname, '../sql');
 
-function listfiles (type, sourcetype='sourceDir',uniquename=false) {
+function listfiles (type, sourcetype='sourceDir', uniquename=false) {
     // source (sourceDir, additionalSourceDirs, all) 
     var dirs = [];
     
@@ -17,6 +17,8 @@ function listfiles (type, sourcetype='sourceDir',uniquename=false) {
     }
     
 
+    
+
 
 
     let items = null; 
@@ -25,64 +27,45 @@ function listfiles (type, sourcetype='sourceDir',uniquename=false) {
     for (let dir of dirs) {
 
         if(fs.existsSync(dir)) {
+            directory = null
             switch (type) {
                 case 'schemas':
-                    directory = path.join(dir, '01_schemas'); 
-                    if(!fs.existsSync(directory)) {
-                        continue;
-                    }
-                    items = fs.readdirSync(directory);
-
-                    for (let item of items) {
-                        // TODO unique name of file not path
-                        files.push(path.join(dir, '01_schemas', item));
-                    }
+                    directory = path.join(dir, '01_schemas');
                     break;
-                    
                 case 'tables':
                     directory = path.join(dir, '02_tables');
-                    if (!fs.existsSync(directory)) {
-                        continue;
-                    }
-                    items = fs.readdirSync(directory);
-
-                    for (let item of items) {
-                        // TODO unique name of file not path
-                        files.push(path.join(dir, '02_tables', item));
-                    }
                     break;
-                    
                 case 'others':
                     directory = path.join(dir, '03_others');
-                    if (!fs.existsSync(directory)) {
-                        continue;
-                    }
-                    items = fs.readdirSync(directory);
-
-                    for (let item of items) {
-                        files.push(path.join(dir, '03_others', item));
-                    }
-                    break;
+                    break; 
                 case 'inserts':
                     directory = path.join(dir, '06_inserts');
-                    if (!fs.existsSync(directory)) {
-                        continue;
-                    }
-                    items = fs.readdirSync(directory);
-                    for (let item of items) {
-                        files.push(path.join(dir, '06_inserts', item));
-                    }
+                    break;
+            } 
 
+            if(!fs.existsSync(directory) || !directory) {
+                continue;
             }
+
+            items = fs.readdirSync(directory);
+            items.sort();
+
+            for (let item of items) {
+                // TODO unique name of file not path
+                files.push(path.join(directory, item));
+            }
+
         }
 
     } 
 
-
-
     // filter sql
     files = files.filter(file => file.match(/\.sql$/));
-    files.sort();
     return files;
 }
+
+
+
+
+
 module.exports.listfiles = listfiles;
