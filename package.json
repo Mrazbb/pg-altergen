@@ -1,6 +1,6 @@
 {
   "name": "pg-altergen",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.js",
   "bin": {
     "pg-altergen": "./bin/cli"
@@ -14,5 +14,13 @@
   "dependencies": {
     "querybuilderpg": "^1.0.24",
     "total5": "^0.0.4"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mrazbb/pg-altergen.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Mrazbb/pg-altergen/issues"
+  },
+  "homepage": "https://github.com/Mrazbb/pg-altergen#readme"
 }
