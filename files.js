@@ -63,6 +63,16 @@ function listfiles (type, sourcetype='sourceDir',uniquename=false) {
                         files.push(path.join(dir, '03_others', item));
                     }
                     break;
+                case 'inserts':
+                    directory = path.join(dir, '06_inserts');
+                    if (!fs.existsSync(directory)) {
+                        continue;
+                    }
+                    items = fs.readdirSync(directory);
+                    for (let item of items) {
+                        files.push(path.join(dir, '06_inserts', item));
+                    }
+
             }
         }
 
