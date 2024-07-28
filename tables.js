@@ -24,7 +24,6 @@ function generate (files) {
             table_name = m?.groups?.name;    
         }
 
-        console.log('file', file, table_name);
 
         if (!table_name)
             continue;
