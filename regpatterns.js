@@ -16,10 +16,17 @@ for (let i = 0; i < 10; i++) {
 }
 let regex_columns = new RegExp(`^\\s*"(?<name>\\w+)"\\s((?<type>(${regex_types})+(\\(.+\\))?)(\\(\\d\\))?)\\s*${regex_constraints},\\W*?$`, 'gmi');
 
+// others
+const others_names = /CREATE\s+(?:OR\s+REPLACE\s*)|(FUNCTION|PROCEDURE|VIEW)\s+"?(?<schema>[\w]*)?"?\.?"?(?<name>(fn|view|procedure)_[\w]+)"?\s?(\(|AS)/gmi;
+const others_dependencies = /"?(?<schema>[\w]*)?"?\.?"?(?<name>(fn|view|procedure)_[\w]+)"?/gmi
+
 module.exports = {
     table_name,
     regex_columns,
     end_constraint,
     primary_key_newline,
-    index_line
+    index_line, 
+    others_names,
+    others_dependencies
+
 };

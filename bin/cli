@@ -48,9 +48,7 @@ async function load(args) {
 
 	MAIN.schemas = [];
 	MAIN.tables = [];
-	MAIN.views = [];
-	MAIN.functions = [];
-	MAIN.procedures = [];
+	MAIN.others = [];
 
 	if(cmd == 'generate'){
 		generate();
