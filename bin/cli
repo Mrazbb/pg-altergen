@@ -58,6 +58,8 @@ async function load(args) {
 	} else if (cmd == 'migrate'){
 		await migrate();
 
+	} else {
+		console.log(`Command not found: ${cmd}`);
 	}
 	
 }
