@@ -8,8 +8,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Marek Mráz",
+  "license": "MIT",
   "description": "",
   "dependencies": {
     "querybuilderpg": "^1.0.24",
