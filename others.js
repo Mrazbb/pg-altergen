@@ -15,7 +15,7 @@ function generate (files) {
     // DROP FUNCTIONS
     drop.push(fs.readFileSync(PATH.join(__dirname, 'sql', 'drop_all_functions.sql'), 'utf8'));
     drop.push(`SELECT drop_all_functions(ARRAY[${MAIN.schemas.map(schema => `'${schema.name}'`).join(', ')}]);`);
-    drop.push(`DROP IF EXISTS FUNCTION drop_all_functions(text[]);`);
+    drop.push(`DROP FUNCTION IF EXISTS drop_all_functions(text[]);`);
     
     // DROP PROCEDURES
     // 
