@@ -14,7 +14,7 @@ BEGIN
             JOIN pg_catalog.pg_proc AS p
             ON r.specific_name = p.proname || '_' || p.oid
             WHERE r.routine_type = 'FUNCTION'
-            AND r.routine_schema = schema AND function_name != 'drop_all_functions'
+            AND r.routine_schema = schema 
         LOOP
             drop_query := 'DROP FUNCTION ' || quote_ident(schema) || '.' || quote_ident(function_name) || '(' || argument_list || ')' || ' CASCADE';
             EXECUTE drop_query;
