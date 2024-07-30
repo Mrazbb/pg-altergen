@@ -119,7 +119,7 @@ async function migrate () {
 
 	let begin = 0;
 	let end = alter_array.length;
-	let middle = 0;
+	let middle;
 	
 	// binary search for error (firstly check all queries)
 	// and only run that portion of query
@@ -137,7 +137,7 @@ async function migrate () {
 	// binary search for error
 	while (begin < end && iserror) {
 		middle = Math.floor((begin + end) / 2);
-		let query = alter_array.slice(begin, middle).join('\n');
+		let query = alter_array.slice(begin, middle+1).join('\n');
 		try {
 			await DATA.query(query).promise();
 			begin = middle + 1;
@@ -145,33 +145,21 @@ async function migrate () {
 			end = middle;
 		}
 	} 
-	
 	// if error found, check the last query
 	if (begin == end && iserror) {
 		let query = '';
 		try {
-			query = alter_array.slice(middle - 1, middle).join('\n');
+			query = alter_array.slice(begin, begin + 1).join('\n');
 			await DATA.query(query).promise();
-			console.log('Migration completed');
-			console.log('begin:', begin, 'end:', end, 'middle:', middle, 'query:', query);
+			console.log('!!!!!!!!!Error could not be found but error was thrown in the previous query!!!!!!!!!');
 		} catch (e) {
-			console.log(DIVIDER);
+			console.log('\n\n\n\n\n\n\n' + DIVIDER);
 			console.log('Query:\n\n ', query);
 			console.log(DIVIDER);
 			console.log('Error: \n\n', e);
 		}
 	}
-
-
 	process.exit(0);
-	
-	
-
-	
-
-	
-
-	
 }
 
 setTimeout(load, 100, ARGS);

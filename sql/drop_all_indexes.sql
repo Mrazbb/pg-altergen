@@ -5,7 +5,7 @@ DECLARE
     tblname TEXT;
     idxname TEXT;
     drop_query TEXT;
-    dropped_indexes TEXT[];
+    dropped_indexes TEXT[] := '{}';
 BEGIN
     FOREACH schema IN ARRAY schemas LOOP
         FOR tblname, idxname IN

@@ -16,6 +16,11 @@ BEGIN
             WHERE r.routine_type = 'FUNCTION'
             AND r.routine_schema = schema 
         LOOP
+            -- Skip dropping this function itself
+            IF function_name = 'drop_all_functions' THEN
+                CONTINUE;
+            END IF;
+
             drop_query := 'DROP FUNCTION ' || quote_ident(schema) || '.' || quote_ident(function_name) || '(' || argument_list || ')' || ' CASCADE';
             EXECUTE drop_query;
             dropped_functions := array_append(dropped_functions, schema || '.' || function_name || '(' || argument_list || ')');
