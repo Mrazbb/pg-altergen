@@ -1,26 +1,26 @@
 {
-  "name": "pg-altergen",
-  "version": "1.1.8",
-  "main": "index.js",
-  "bin": {
-    "pg-altergen": "./bin/cli"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Marek Mráz",
-  "license": "MIT",
-  "description": "",
-  "dependencies": {
-    "querybuilderpg": "^1.0.24",
-    "total5": "^0.0.4"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Mrazbb/pg-altergen.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Mrazbb/pg-altergen/issues"
-  },
-  "homepage": "https://github.com/Mrazbb/pg-altergen#readme"
+    "name": "pg-altergen",
+    "version": "1.1.9",
+    "main": "index.js",
+    "bin": {
+        "pg-altergen": "./bin/cli"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Marek Mráz",
+    "license": "MIT",
+    "description": "",
+    "dependencies": {
+        "querybuilderpg": "^1.0.24",
+        "total5": "^0.0.4"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Mrazbb/pg-altergen.git"
+    },
+    "bugs": {
+        "url": "https://github.com/Mrazbb/pg-altergen/issues"
+    },
+    "homepage": "https://github.com/Mrazbb/pg-altergen#readme"
 }
