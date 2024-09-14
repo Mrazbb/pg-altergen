@@ -4,7 +4,7 @@ const end_constraint = /^\s*(CONSTRAINT\s*"(?<name>\w*)"*.+?),?$/gmi;
 const index_line = /CREATE\s+(?:UNIQUE)?\s*INDEX.*$/gmi
 
 const types = ["\\[", "\\]", "bigint", "bigserial", "bit", "bit varying", "boolean", "box", "bytea", "character", "character varying", "cidr", "circle", "date", "double precision", "inet", "integer", "interval", "json", "jsonb", "line", "lseg", "macaddr", "macaddr8", "money", "numeric", "path", "pg_lsn", "pg_snapshot", "point", "polygon", "real", "smallint", "smallserial", "serial", "text", "time", "time with time zone", "timestamp", "timestamp with time zone", "tsquery", "tsvector", "txid_snapshot", "uuid", "xml", "int8", "serial8", "varbit", "bool", "char", "varchar", "float8", "int", "decimal", "int4", "float4", "int2", "serial2", "serial4", "timetz", "timestamptz"];
-const constraints = [`NOT NULL`, `DEFAULT\\s[\\w\\(\\)'"{}:]+`, `UNIQUE`, `PRIMARY KEY\\s*\\(.*?\\)`]
+const constraints = [`NOT NULL`, `DEFAULT\\s[\\w\\(\\)'"{}:(),]+`, `UNIQUE`, `PRIMARY KEY\\s*\\(.*?\\)`]
 const regex_types = types.join('|');
 const regex_constraints2 = constraints.join('|');
 const primary_key_newline = /^\s*PRIMARY\sKEY\s*\((?<columns>.+?)\)\s*$/gmi;
