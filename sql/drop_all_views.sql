@@ -12,7 +12,7 @@ BEGIN
             FROM INFORMATION_SCHEMA.views
             WHERE table_schema = schema
         LOOP
-            drop_query := 'DROP VIEW IF EXISTS' || quote_ident(schema) || '.' || quote_ident(view_name) || ' CASCADE';
+            drop_query := 'DROP VIEW IF EXISTS ' || quote_ident(schema) || '.' || quote_ident(view_name) || ' CASCADE';
             EXECUTE drop_query;
             dropped_views := array_append(dropped_views, schema || '.' || view_name);
         END LOOP;
