@@ -13,7 +13,7 @@ let regex_constraints = '';
 for (let i = 0; i < 10; i++) {
     regex_constraints += `(?<constrain${i}>${regex_constraints2})?\\s?`
 }
-let regex_columns = new RegExp(`^\\s*"(?<name>\\w+)"\\s((?<type>(${regex_types})+(\\(.+\\))?)(\\(\\d\\))?)\\s*${regex_constraints},\\W*?$`, 'gmi');
+let regex_columns = new RegExp(`^\\s*"(?<name>\\w+)"\\s+((?<type>(${regex_types})+(\\(.+\\))?)(\\(\\d\\))?)\\s*${regex_constraints},\\W*?$`, 'gmi');
 
 // others
 const others_names = /CREATE\s+(?:OR\s+REPLACE\s*)|(FUNCTION|PROCEDURE|VIEW)\s+"?(?<schema>[\w]*)?"?\.?"?(?<name>(fn|view|procedure)_[\w]+)"?\s?(\(|AS)/gmi;
