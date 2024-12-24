@@ -1,8 +1,8 @@
 # pg-altergen
 
-pg-altergen is a Node.js CLI tool designed to help manage PostgreSQL schema changes in a structured manner. It allows you to organize your database objects (schemas, tables, views, functions, procedures, triggers, etc.) in separate SQL files and then compile them into a single “alter” script for easy migration to a target database. pg-altergen can also help detect and drop outdated objects before creating or updating them, ensuring that your database stays in sync with your desired definitions.
+❗❗❗ **IMPORTANT:** Always make backups for critical databases before running pg-altergen scripts! During the migration process, pg-altergen will drop existing objects and create new ones. ❗❗❗
 
-• <span style="color:red">Always make backups for critical production databases before running pg-altergen scripts!</span>  
+pg-altergen is a Node.js CLI tool designed to help manage PostgreSQL schema changes in a structured manner. It allows you to organize your database objects (schemas, tables, views, functions, procedures, triggers, etc.) in separate SQL files and then compile them into a single “alter” script for easy migration to a target database. pg-altergen can also help detect and drop outdated objects before creating or updating them, ensuring that your database stays in sync with your desired definitions.
 
 --------------------------------------------------------------------------------
 ## Table of Contents
@@ -181,7 +181,7 @@ Below is an example for a project named “filmdb”, which can be found in the 
 
 • If the migration fails and binary search does not narrow it down effectively, inspect “alter.sql” manually.  
 • You can comment out or reorder certain statements if you suspect cyclical dependencies, then run “migrate” again.  
-• <span style="color:red">Always make backups for critical production databases before running pg-altergen scripts!</span>  
+• ❗ **IMPORTANT:** Always make backups for critical production databases before running pg-altergen scripts! During the migration process, pg-altergen will drop existing objects and create new ones.
 
 --------------------------------------------------------------------------------
 
