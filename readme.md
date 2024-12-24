@@ -154,6 +154,7 @@ This command:
 
 Below is an example for a project named “filmdb”, which can be found in the “examples/filmdb” folder of this repository:
 
+
 1. You have the following structure:  
    ├─ .vscode/tasks.json  
    ├─ altergen.json  
@@ -172,9 +173,30 @@ Below is an example for a project named “filmdb”, which can be found in the 
    │  └─ 11_updates  
    └─ ...other files  
 
-2. Running “npx pg-altergen generate” will look into each subdirectory in numerical order, parse the .sql files, and create “alter.sql”.  
+You can try pg-altergen quickly by downloading just the examples directory. 
 
-3. Running “npx pg-altergen migrate” connects to the database defined in altergen.json (property “postgres” in the config) and executes the queries.  
+### 1. Using Git Sparse Checkout (Git 2.25+)
+```bash
+# Create directory and initialize
+mkdir pg-altergen-examples
+cd pg-altergen-examples
+git init
+git remote add origin https://github.com/Mrazbb/pg-altergen.git
+git sparse-checkout init --cone
+git sparse-checkout set examples
+git pull origin main
+```
+
+### Run the Example
+```bash
+cd examples/filmdb
+docker-compose up -d    # Starts PostgreSQL container
+npm install  pg-altergen
+pg-altergen generate    # Creates alter.sql from the SQL files
+pg-altergen migrate     # Applies changes to the database
+```
+
+The filmdb example includes a complete movie database schema with tables for films, reviews, and ratings—perfect for seeing pg-altergen in action!
 
 --------------------------------------------------------------------------------
 ## Troubleshooting
@@ -206,3 +228,4 @@ pg-altergen is released under the [MIT License](https://opensource.org/licenses/
 --------------------------------------------------------------------------------
 
 Happy database versioning and migrations!
+
