@@ -74,7 +74,7 @@ Each subfolder contains files for the corresponding database objects. For instan
 • 05_procedures/public.pr_update_review.sql  
 … and so on.
 
-You can also specify “additionalsource_dirs” in your config if you want pg-altergen to scan multiple directories.  
+You can also specify “additional_source_dirs” in your config if you want pg-altergen to scan multiple directories.  
 
 ### Configuration File (altergen.json)
 
@@ -86,7 +86,7 @@ json
 {
 "postgres": "postgres:postgres@localhost:5432/postgres",
 "source_dir": "sql",
-"additionalsource_dirs": ["private/sql"],
+"additional_source_dirs": ["private/sql"],
 "output_file": "alter.sql"
 }
 ```
@@ -96,7 +96,7 @@ json
 
 • postgres: Connection string without the “postgres://” prefix. (Alternatively, you can do "postgresql://user:password@host:port/dbname" style if you prefer as a CLI override.)  
 • source_dir: The main directory to scan for DB object definitions.  
-• additionalsource_dirs: An array of additional fallback directories if needed. (During generate process, it will scan all directories and create alter script from the last file with the same name in all directories. Example: One directory contains base database structure and you want to extend it with some additional objects and don't want to alter the base structure.
+• additional_source_dirs: An array of additional fallback directories if needed. (During generate process, it will scan all directories and create alter script from the last file with the same name in all directories. Example: One directory contains base database structure and you want to extend it with some additional objects and don't want to alter the base structure.
 • output_file: Name of the generated SQL file (defaults to “alter.sql”).  
 
 --------------------------------------------------------------------------------
@@ -125,7 +125,7 @@ json
 {
 "postgres": "postgres:postgres@localhost:5432/postgres",
 "source_dir": "sql",
-"additionalsource_dirs": ["private/sql"],
+"additional_source_dirs": ["private/sql"],
 "output_file": "alter.sql"
 }
 ```

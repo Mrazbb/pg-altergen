@@ -1,6 +1,6 @@
 {
     "postgres": "postgres:postgres@localhost:5432/postgres",
     "source_dir": "sql",
-    "additionalsource_dirs": ["private/sql"],
+    "additional_source_dirs": ["private/sql"],
     "output_file": "alter.sql"
 }
