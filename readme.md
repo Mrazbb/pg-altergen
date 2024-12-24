@@ -192,8 +192,8 @@ git pull origin main
 cd examples/filmdb
 docker-compose up -d    # Starts PostgreSQL container
 npm install  pg-altergen
-pg-altergen generate    # Creates alter.sql from the SQL files
-pg-altergen migrate     # Applies changes to the database
+npx pg-altergen generate    # Creates alter.sql from the SQL files
+npx pg-altergen migrate     # Applies changes to the database
 ```
 
 The filmdb example includes a complete movie database schema with tables for films, reviews, and ratings—perfect for seeing pg-altergen in action!
