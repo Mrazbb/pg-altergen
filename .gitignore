@@ -3,3 +3,5 @@ node_modules/
 package-lock.json
 *.code-workspace
 .vscode/tasks.json
+examples/**/alter.sql
+
