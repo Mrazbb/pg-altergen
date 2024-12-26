@@ -7,6 +7,8 @@ const tables = require('../processors/tables');
 const others = require('../processors/others');
 const functions = require('../processors/functions');
 const procedures = require('../processors/procedures');
+const inserts = require('../processors/inserts');
+const updates = require('../processors/updates');
 
 
 /**
@@ -56,15 +58,21 @@ async function generateCommand(config) {
 
     // INSERTS
     const insertFiles = files.listfiles('inserts', 'all');
+    let insertsRes = await inserts.generate(insertFiles);
 
     // UPDATES
     const updateFiles = files.listfiles('updates', 'all');
+    let updatesRes = await updates.generate(updateFiles);
+
 
 
     let schemasRes = schemas.generate();
     let tablesRes = tables.generate();
     let otherRes = others.generate();
     let dropRes = others.drop();
+
+
+
 
 
     // let tablesRes = tables.generate();
@@ -90,6 +98,8 @@ async function generateCommand(config) {
         ...tablesRes.create,
         ...tablesRes.constraints,
         ...otherRes,
+        ...insertsRes,
+        ...updatesRes,
     ].join('\n-- step\n') + '\n-- step\n';
 
     // Final version label + note

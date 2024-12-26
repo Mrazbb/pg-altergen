@@ -31,6 +31,8 @@ function process(files) {
             continue; // skip if no table name found
         }
 
+        name = name.replaceAll('"', '');
+
         let name_clean = name.replaceAll('"', '').split('.');
         let schema_name = name_clean[0];
         let table_name = name_clean[1];
@@ -44,7 +46,9 @@ function process(files) {
                 file_path: file,
                 columns: [],
                 constraints: [],
-                primary_key: []
+                primary_keys: [],
+                foreign_keys: [],
+                dependencies: []
             });
         }
 
@@ -60,7 +64,7 @@ function process(files) {
                     .map(col => col.trim());
             }
         }
-        table_meta.primary_key = primary_key_cols;
+        table_meta.primary_keys = primary_key_cols;
 
 
         // 4) Parse each column definition
@@ -110,7 +114,7 @@ function process(files) {
             }
         }
 
-        if (table_meta.primary_key.length > 0) {
+        if (table_meta.primary_keys.length > 0) {
             primary_key_set = true;
         }
 
@@ -118,8 +122,32 @@ function process(files) {
             throw new Error(`No primary key found for table ${table_name} in file ${file}`);
         }
 
+
+        REG.FOREIGN_KEY_PATTERN.lastIndex = 0;
+        let foreign_key_match;
+        while ((foreign_key_match = REG.FOREIGN_KEY_PATTERN.exec(data)) !== null) {
+            // Parse local and reference keys, handling multiple columns
+            let local_keys = foreign_key_match?.groups?.keys
+                ?.split(',')
+                ?.map(key => key.replaceAll('"', '').trim());
+            
+            let ref_keys = foreign_key_match?.groups?.keys
+                ?.split(',')
+                ?.map(key => key.replaceAll('"', '').trim());
+            
+            let table_name_ref = foreign_key_match?.groups?.table;
+            let schema_name_ref = foreign_key_match?.groups?.schema;
+
+            let table_ref = `${schema_name_ref}.${table_name_ref}`;
+            console.log('table_ref insert', table_ref);
+            table_meta.dependencies.push(table_ref);
+        }
     }
 
+    let dependencies = check_dependencies();
+    MAIN.tables.forEach(table => {
+        table.order = dependencies.indexOf(table.name);
+    });
 
     return MAIN.tables;
 }
@@ -166,11 +194,11 @@ function generate() {
     let create_tables = [];
     let alter_columns = [];
     let table_constraints = [];
-    let primary_keys = [];
+    let create_primary_keys = [];
 
     // Loop over tables in MAIN.tables
     for (const table of MAIN.tables) {
-        const { name, table_name, schema_name, columns, constraints, primary_key } = table;
+        const { name, table_name, schema_name, columns, constraints, primary_keys } = table;
 
         // 1) CREATE TABLE (with primary key)
         // Build the column definitions for CREATE TABLE if desired
@@ -178,10 +206,10 @@ function generate() {
 
         // CREATE TABLE IF NOT EXISTS without any constraints just column with primary key nothing else
         create_tables.push(
-            `CREATE TABLE IF NOT EXISTS ${name} (${primary_key.map(col => `"${col}" ${columns.find(c => c.name === col).type}`).join(', ')});`
+            `CREATE TABLE IF NOT EXISTS ${name} (${primary_keys.map(col => `"${col}" ${columns.find(c => c.name === col).type}`).join(', ')});`
         );
 
-        // 2) ALTER TABLE for columns (if not already in the CREATE TABLE)
+        // 2) ALTER TABLE for columns 
         for (const col of columns) {
             alter_columns.push(
                 `ALTER TABLE ${name} ADD COLUMN IF NOT EXISTS "${col.name}" ${col.type};`
@@ -193,7 +221,7 @@ function generate() {
             for (const constraint of col.constraints) {
 
                 if (constraint.startsWith('PRIMARY KEY')) {
-                    primary_keys.push(`SELECT create_constraint_if_not_exists('${name.replaceAll('"','')}', '${table.schema_name}_${table.table_name}_${col.name}_primary_key', 'ALTER TABLE ${name} ADD CONSTRAINT ${table.schema_name}_${table.table_name}_${col.name}_primary_key PRIMARY KEY (${col.name});');`);
+                    create_primary_keys.push(`SELECT create_constraint_if_not_exists('${name.replaceAll('"','')}', '${table.schema_name}_${table.table_name}_${col.name}_primary_key', 'ALTER TABLE ${name} ADD CONSTRAINT ${table.schema_name}_${table.table_name}_${col.name}_primary_key PRIMARY KEY (${col.name});');`);
 
                 } else if (constraint.startsWith('UNIQUE')) {
                     table_constraints.push(`SELECT create_constraint_if_not_exists('${name.replaceAll('"','')}', '${table.schema_name}_${table.table_name}_${col.name}_unique', 'ALTER TABLE ${name} ADD CONSTRAINT ${table.schema_name}_${table.table_name}_${col.name}_unique UNIQUE (${col.name});');`);
@@ -216,10 +244,14 @@ function generate() {
             table_constraints.push(`SELECT create_constraint_if_not_exists('${name.replaceAll('"','')}', '${constraint.name}', 'ALTER TABLE ${name} ADD ${constraint.definition}');`);
         }
 
+
+
         // 5) Primary key
-        if (primary_key && primary_key.length > 0) {    
-            primary_keys.push(`SELECT create_constraint_if_not_exists('${table_name}', '${table_name}_pkey', 'ALTER TABLE ${table_name} ADD PRIMARY KEY (${primary_key.map(col => `"${col}"`).join(', ')});');`);
+        if (primary_keys && primary_keys.length > 0) {    
+            primary_keys.push(`SELECT create_constraint_if_not_exists('${table_name}', '${table_name}_pkey', 'ALTER TABLE ${table_name} ADD PRIMARY KEY (${primary_keys.map(col => `"${col}"`).join(', ')});');`);
         }
+
+
     }
 
     const create_constraint_if_not_exists = fs.readFileSync(fromRoot('src/sql/create_constraint_if_not_exists.sql'), 'utf8') + '\n';    
@@ -245,7 +277,7 @@ function generate() {
     
     let constraints = [
         '\n-- Create constraints',
-        ...primary_keys,
+        ...create_primary_keys,
         '\n-- Create table constraints',
         ...table_constraints,
         drop_function_if_exists,
@@ -277,6 +309,39 @@ function drop_column_constraints () {
     output.push('DROP FUNCTION drop_column_constraints(text[]);');
     return output; 
 }
+
+
+
+function check_dependencies () {
+    let created = [];
+    let tables = CLONE([...MAIN.tables]);
+
+    while (tables.length > 0) {
+        let i = 0;
+        let createdinloop = 0;
+        while (i < tables.length) {
+            let obj = tables[ i ];
+            
+            let uncreated = obj.dependencies.filter(dep => created.indexOf(dep) === -1);
+            if (uncreated.length == 0) {
+                created.push(obj.name);
+                tables.splice(i, 1);
+                createdinloop++;
+            }
+
+            i++;
+        }
+        if (createdinloop == 0) {
+            console.log('ERROR: Missing dependencies', tables);
+            // throw new Error('Missing dependencies');
+            break;
+        }
+
+    }
+
+    return created;
+}
+
 
 module.exports = { 
     process,

@@ -1,3 +1,5 @@
+[![npm version](https://badge.fury.io/js/pg-altergen.svg)](https://badge.fury.io/js/pg-altergen)
+
 # pg-altergen
 
 ❗❗❗ **IMPORTANT:** Always make backups for critical databases before running pg-altergen scripts! During the migration process, pg-altergen will drop existing objects and create new ones. ❗❗❗

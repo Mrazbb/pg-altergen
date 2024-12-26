@@ -63,6 +63,14 @@ const TABLE_CONSTRAINT_PATTERN = /^\s*(CONSTRAINT\s*"(?<name>\w*)"*.+?),?$/gmi;
 const PRIMARY_KEY_NEWLINE_PATTERN = /^\s*PRIMARY\sKEY\s*\((?<columns>.+?)\)\s*$/gmi;
 
 /**
+ * Matches foreign key definitions, capturing the local key, reference schema, reference table, and reference key.
+ * Example match: CONSTRAINT "public_tbl_review_userid_fkey" FOREIGN KEY ("userid") REFERENCES "public"."tbl_user" ("id")
+ */
+// CONSTRAINT "public_tbl_review_movieid_fkey" FOREIGN KEY ("movieid") REFERENCES "public"."tbl_movie" ("id", "isactive"),
+
+const FOREIGN_KEY_PATTERN = /CONSTRAINT\s+"(?<name>[^"]+)"\s+FOREIGN\s+KEY\s*\(\s*"(?<local_key>[^"]+)"\s*\)\s+REFERENCES\s+"(?<schema>[^"]+)"\."(?<table>[^"]+)"\s*\(\s*(?<keys>.*)\)/gmi;
+
+/**
  * Matches CREATE [OR REPLACE] (FUNCTION|PROCEDURE|VIEW) statements, capturing
  * the schema and object name. Example match:
  * CREATE OR REPLACE FUNCTION "myschema"."fn_something"(...)
@@ -84,7 +92,9 @@ module.exports = {
     INDEX_LINE_PATTERN,
     TABLE_COLUMN_PATTERN,
     PRIMARY_KEY_NEWLINE_PATTERN,
+    FOREIGN_KEY_PATTERN,
     OTHERS_NAMES_PATTERN,
     OTHERS_DEPENDENCIES_PATTERN,
     TABLE_CONSTRAINT_PATTERN
 };
+
