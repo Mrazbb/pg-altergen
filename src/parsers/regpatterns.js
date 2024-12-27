@@ -83,7 +83,7 @@ const OTHERS_NAMES_PATTERN =
  * dependency tracking. Example match: myschema.fn_something
  */
 const OTHERS_DEPENDENCIES_PATTERN =
-    /("(?<schema>[\w]*)?"\.?)"(?<name>(fn|view|sp)_[\w]+)"/gmi
+    /("?(?<schema>[\w]*)?"?\.?)?"?(?<name>(?<=^|[ ."])(fn|view|sp)_[\w]+)"?/gmi;
 
 // Export each pattern with clear naming
 module.exports = {
