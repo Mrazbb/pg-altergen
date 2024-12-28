@@ -10,7 +10,7 @@
     },
     "author": "Marek Mráz",
     "license": "MIT",
-    "description": "",
+    "description": "A Node.js CLI tool for managing PostgreSQL schema changes by organizing database objects in SQL files and generating ordered migration scripts with automatic dependency resolution.",
     "dependencies": {
         "csv-parser": "^3.1.0",
         "querybuilderpg": "^1.0.24",
