@@ -1,8 +1,9 @@
-[![npm version](https://badge.fury.io/js/pg-altergen.svg)](https://badge.fury.io/js/pg-altergen)
 
 # pg-altergen
 
 A Node.js CLI tool for managing PostgreSQL schema changes by organizing database objects in SQL files and generating ordered migration scripts with automatic dependency resolution.
+
+[![npm version](https://badge.fury.io/js/pg-altergen.svg)](https://badge.fury.io/js/pg-altergen)
 
 ❗❗❗ **IMPORTANT:** Always make backups for critical databases before running pg-altergen scripts! During the migration process, pg-altergen will drop existing objects and create new ones. ❗❗❗
 
