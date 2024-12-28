@@ -113,7 +113,7 @@ async function generateCommand(config) {
 
     if (config.create_drop_columns_file && config.drop_columns_file) {
         let drop_not_included_columns = tables.drop_not_included_columns();
-        fs.writeFileSync(config.drop_columns_file, drop_not_included_columns);
+        fs.writeFileSync(config.drop_columns_file, `-- DROP NOT INCLUDED COLUMNS\n${note}\n${drop_not_included_columns} \n ${note}`);
     }
 }
 
