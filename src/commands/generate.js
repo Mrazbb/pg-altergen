@@ -9,7 +9,7 @@ const functions = require('../processors/functions');
 const procedures = require('../processors/procedures');
 const inserts = require('../processors/inserts');
 const updates = require('../processors/updates');
-
+const indexes = require('../processors/indexes');
 
 /**
  * generateCommand:
@@ -22,78 +22,74 @@ async function generateCommand(config) {
     let alter = '';
 
     // SCHEMAS
-    const schemaFiles = files.listfiles('schemas', 'all');
-    schemas.process(schemaFiles);
+    const schema_files = files.listfiles('schemas', 'all');
+    schemas.process(schema_files);
 
     // TABLES
-    const tableFiles = files.listfiles('tables', 'all');
-    tables.process(tableFiles);
+    const table_files = files.listfiles('tables', 'all');
+    tables.process(table_files);
 
     // VIEWS 
-    const viewFiles = files.listfiles('views', 'all');
-    others.process('views', viewFiles);
+    const view_files = files.listfiles('views', 'all');
+    others.process('views', view_files);
 
     // FUNCTIONS
-    const functionFiles = files.listfiles('functions', 'all');
-    others.process('functions', functionFiles);
+    const function_files = files.listfiles('functions', 'all');
+    others.process('functions', function_files);
 
     // PROCEDURES
-    const procedurFiles = files.listfiles('procedures', 'all');
-    others.process('procedures', procedurFiles);
-
+    const procedure_files = files.listfiles('procedures', 'all');
+    others.process('procedures', procedure_files);
 
     // TRIGGERS
-    const triggerFiles = files.listfiles('triggers', 'all');
-
+    const trigger_files = files.listfiles('triggers', 'all');
 
     // SEQUENCES
-    const sequenceFiles = files.listfiles('sequences', 'all');
-
+    const sequence_files = files.listfiles('sequences', 'all');
 
     // TYPES
-    const typeFiles = files.listfiles('types', 'all');
+    const type_files = files.listfiles('types', 'all');
 
     // EXTENSIONS
-    const extensionFiles = files.listfiles('extensions', 'all');
+    const extension_files = files.listfiles('extensions', 'all');
 
     // INSERTS
-    const insertFiles = files.listfiles('inserts', 'all');
-    let insertsRes = await inserts.generate(insertFiles);
+    const insert_files = files.listfiles('inserts', 'all');
+    let inserts_res = await inserts.generate(insert_files);
 
     // UPDATES
-    const updateFiles = files.listfiles('updates', 'all');
-    let updatesRes = await updates.generate(updateFiles);
+    const update_files = files.listfiles('updates', 'all');
+    let updates_res = await updates.generate(update_files);
 
-
-
-    let schemasRes = schemas.generate();
-    let tablesRes = tables.generate();
-    let otherRes = others.generate();
-    let dropRes = others.drop();
-
-
-
-
-
-
-
+    // GENERATE
+    let schemas_res = schemas.generate();
+    let tables_res = tables.generate();
+    let other_res = others.generate();
+    let drop_res = others.drop();
+    let indexes_res = indexes.generate(table_files);
 
 
     // // INSERTS
     // const insertFiles = files.listfiles('inserts', 'all');
     // alter += insert.generate(insertFiles);
 
-
     // Merge portions
     alter += [
-        ...schemasRes,
-        ...tablesRes.drop_constraints,
-        ...dropRes,
-        ...tablesRes.create,
-        ...tablesRes.constraints,
-        ...otherRes,
-        ...insertsRes,
-        ...updatesRes,
+        // CREATE SCHEMAS
+        ...schemas_res,
+
+        // DROP
+        ...tables_res.drop_constraints,
+        ...drop_res,
+        ...indexes_res.drop_indexes,
+
+        // CREATE
+        ...tables_res.create,
+        ...tables_res.constraints,
+        ...indexes_res.create_indexes,
+        ...other_res,
+        ...inserts_res,
+        ...updates_res,
     ].join('\n-- step\n') + '\n-- step\n';
 
     // Final version label + note
@@ -104,18 +100,16 @@ async function generateCommand(config) {
         `-- with config:\n\n-- The MIT License (MIT)\n-- © 2024 Marek Mráz <info@marek-mraz.com>\n\n`;
 
     // Copy config minus the Postgres password or other sensitive data
-    const configCopy = { ...config };
-    delete configCopy.postgres;
+    const config_copy = { ...config };
+    delete config_copy.postgres;
 
-    for (let key in configCopy) {
-        note += `--   ${key}: ${JSON.stringify(configCopy[key])}\n`;
+    for (let key in config_copy) {
+        note += `--   ${key}: ${JSON.stringify(config_copy[key])}\n`;
     }
 
     // Write everything to disk
     fs.writeFileSync(config.output_file, note + '\n' + alter + '\n' + note);
     console.log(`Generated SQL file: ${config.output_file}`);
-
-
 
     if (config.create_drop_columns_file && config.drop_columns_file) {
         let drop_not_included_columns = tables.drop_not_included_columns();
