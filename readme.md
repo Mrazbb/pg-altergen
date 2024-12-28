@@ -2,6 +2,8 @@
 
 # pg-altergen
 
+A Node.js CLI tool for managing PostgreSQL schema changes by organizing database objects in SQL files and generating ordered migration scripts with automatic dependency resolution.
+
 ❗❗❗ **IMPORTANT:** Always make backups for critical databases before running pg-altergen scripts! During the migration process, pg-altergen will drop existing objects and create new ones. ❗❗❗
 
 pg-altergen is a Node.js CLI tool designed to help manage PostgreSQL schema changes in a structured manner. It allows you to organize your database objects (schemas, tables, views, functions, procedures, triggers, etc.) in separate SQL files and then compile them into a single “alter” script for easy migration to a target database. pg-altergen can also help detect and drop outdated objects before creating or updating them, ensuring that your database stays in sync with your desired definitions.
