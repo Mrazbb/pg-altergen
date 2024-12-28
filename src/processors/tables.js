@@ -139,8 +139,9 @@ function process(files) {
             let schema_name_ref = foreign_key_match?.groups?.schema;
 
             let table_ref = `${schema_name_ref}.${table_name_ref}`;
-            console.log('table_ref insert', table_ref);
-            table_meta.dependencies.push(table_ref);
+            if (table_ref !== name) {
+                table_meta.dependencies.push(table_ref);
+            }
         }
     }
 
@@ -248,7 +249,7 @@ function generate() {
 
         // 5) Primary key
         if (primary_keys && primary_keys.length > 0) {    
-            primary_keys.push(`SELECT create_constraint_if_not_exists('${table_name}', '${table_name}_pkey', 'ALTER TABLE ${table_name} ADD PRIMARY KEY (${primary_keys.map(col => `"${col}"`).join(', ')});');`);
+            create_primary_keys.push(`SELECT create_constraint_if_not_exists('${table_name}', '${table_name}_pkey', 'ALTER TABLE ${schema_name}.${table_name} ADD PRIMARY KEY (${primary_keys.map(col => `"${col}"`).join(', ')});');`);
         }
 
 
@@ -332,8 +333,16 @@ function check_dependencies () {
             i++;
         }
         if (createdinloop == 0) {
-            console.log('ERROR: Missing dependencies', tables);
-            // throw new Error('Missing dependencies');
+            console.log('ERROR: Missing dependencies');
+
+            for (const table of tables) {
+                let missing =  table.dependencies.filter(dep => created.indexOf(dep) === -1);
+                if (missing.length > 0) {
+                    console.log(table.name, missing);
+                }
+            }
+
+
             break;
         }
 
@@ -343,7 +352,18 @@ function check_dependencies () {
 }
 
 
+function drop_not_included_columns () {
+    let output = [];
+    let drop_not_included_columns = fs.readFileSync(fromRoot('src/sql/drop_not_included_columns.sql'), 'utf8') + '\n';
+    output.push(drop_not_included_columns);
+    output.push(`SELECT * FROM drop_not_included_columns_for_all(ARRAY[${MAIN.tables.map(item => `('${item.schema_name}','${item.table_name}',ARRAY[${item.columns.map(col => `'${col.name}'`).join(',')}])::schema_table_inclusion`).join(',')}]::schema_table_inclusion[]);`);
+    return output.join('\n');
+}
+
+
+
 module.exports = { 
     process,
-    generate
+    generate,
+    drop_not_included_columns
 };

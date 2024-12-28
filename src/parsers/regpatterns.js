@@ -42,11 +42,10 @@ for (let i = 0; i < 10; i++) {
  * "title" character varying(255) DEFAULT 'Untitled',
  */
 const TABLE_COLUMN_PATTERN = new RegExp(
-    `^\\s*"(?<name>\\w+)"\\s+` +                // capture the column name
+    `^[ \\t]*"(?<name>\\w+)"\\s+` +                // capture the column name
     `((?<type>(${POSTGRES_TYPES.sort((a, b) => b.length - a.length).join('|')})` + // capture the data type
-    `(\\(.+\\))?)(\\(\\d\\))?)` + 
-    // `(?:\\s*(?<constraints>.+?))?\\s*$`,
-`(?:\\s+(?<constraints>[^,]+?))?\\s*(?:,\\s*)?$`,
+    `(\\(.+\\))?)(\\(\\d\\))?(?:\\[\\])*)` + 
+    `(?:[ \\t]+(?<constraints>.+?))?[ \\t]*(?:,[ \\t]*)?(?:--.*)?[ \\t]*$`,
     'gmi'
 );
 

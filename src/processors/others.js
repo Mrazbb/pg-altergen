@@ -27,11 +27,14 @@ function process (type, files) {
             schema = m?.groups?.schema?.replace(/"/g, '');
         }
 
+
+
         while ((m = REG.OTHERS_DEPENDENCIES_PATTERN.exec(file)) !== null) {
 
             if (m.index === REG.OTHERS_DEPENDENCIES_PATTERN.lastIndex) {
                 REG.OTHERS_DEPENDENCIES_PATTERN.lastIndex++;
             }
+
 
             let dep_name = m?.groups?.name?.replace(/"/g, '');
             let dep_schema = m?.groups?.schema?.replace(/"/g, '');
@@ -43,6 +46,7 @@ function process (type, files) {
                 dependencies.push(dependency);
             }
         }
+
 
         MAIN[type].push({ name: schema + '.' + name, file_path, dependencies });
     }
@@ -57,7 +61,7 @@ function check_dependencies () {
 
     while (others.length > 0) {
         let i = 0;
-        let createdinloop = 0;
+        let createdinloop = 0; // count of created objects in the loop if 0 then there are missing dependencies
         while (i < others.length) {
             let obj = others[ i ];
             
@@ -76,7 +80,6 @@ function check_dependencies () {
         }
 
     }
-
     return created;
 }
 

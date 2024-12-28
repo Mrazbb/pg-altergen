@@ -75,15 +75,9 @@ async function generateCommand(config) {
 
 
 
-    // let tablesRes = tables.generate();
 
 
-    // const othersRes = others.generate(othersFiles);
 
-
-    // // INDEXES
-    // const indexFiles = files.listfiles('tables', 'all');
-    // alter += indexes.generate(indexFiles) + '\n-- step\n';
 
     // // INSERTS
     // const insertFiles = files.listfiles('inserts', 'all');
@@ -120,6 +114,16 @@ async function generateCommand(config) {
     // Write everything to disk
     fs.writeFileSync(config.output_file, note + '\n' + alter + '\n' + note);
     console.log(`Generated SQL file: ${config.output_file}`);
+
+
+
+    if (config.create_drop_columns_file && config.drop_columns_file) {
+        let drop_not_included_columns = tables.drop_not_included_columns();
+        fs.writeFileSync(config.drop_columns_file, drop_not_included_columns);
+    }
 }
+
+
+
 
 module.exports = { generateCommand }; 
