@@ -297,7 +297,7 @@ function drop_table_constraints () {
     let drop_all_foreign_keys = fs.readFileSync(fromRoot('src/sql/drop_table_constraints.sql'), 'utf8') + '\n';
 
     output.push(drop_all_foreign_keys);
-    output.push(`SELECT drop_table_constraints(ARRAY[${MAIN.schemas.map(schema => `'${schema.name}'`).join(', ')}]);`);
+    output.push(`SELECT drop_table_constraints(ARRAY[${MAIN.schemas.map(schema => `'${schema.name}'`).join(', ')}]::text[]);`);
     output.push('DROP FUNCTION drop_table_constraints(text[]);');
     return output; 
 }
