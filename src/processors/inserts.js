@@ -34,40 +34,44 @@ function generateInsertStatementsFromCSV(csvFilePath, tableName) {
         fs.createReadStream(csvFilePath)
             .pipe(csv({ separator: ';' }))
             .on('headers', (hdrs) => {
-                // Sanitize column names to avoid quotes or weird characters if needed
                 headers = hdrs.map(h => h.trim());
             })
             .on('data', (data) => {
                 const rowData = {};
                 headers.forEach((col) => {
-                    // Here you might sanitize data[col] further if needed
                     rowData[col] = data[col] ?? '';
                 });
                 rows.push(rowData);
             })
             .on('end', () => {
                 if (!rows.length) {
-                    // No rows found, return an empty array
                     return resolve([]);
                 }
 
-                // Build multi-row INSERT statements in chunks to avoid extremely large statements.
-                // Adjust chunk size to your preference or produce one INSERT per CSV row.
-
+                // convert to array of objects
+                let rows2 = rows.map(row => {
+                    return headers.map(h => row[h]);
+                });
                 const inserts = [];
-                const chunkSize = 1000; // example chunk size
+                const chunkSize = 1000;
                 for (let i = 0; i < rows.length; i += chunkSize) {
                     const chunk = rows.slice(i, i + chunkSize);
 
-                    let columns = headers.map(h => h).join(', ');
+                    let columns = headers.join(', ');
                     let values = chunk.map(row => {
-                        // Convert each field to a properly quoted value
                         let fieldList = headers.map(h => {
-                            let val = row[h] !== undefined ? row[h] : '';
-                            // Replace single quotes with double single quotes for SQL safety
+                            // Trim the field and check if it is empty
+                            let val = (row[h] || '').trim();
+
+                            // Replace empty string with NULL
+                            if (!val) {
+                                return 'NULL';
+                            }
+                            // Replace single quotes for SQL safety and quote the value
                             val = val.replace(/'/g, "''");
                             return `'${val}'`;
                         });
+
                         return `(${fieldList.join(', ')})`;
                     });
 
