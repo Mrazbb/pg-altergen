@@ -48,7 +48,6 @@ const TABLE_COLUMN_PATTERN = new RegExp(
     `(?:[ \\t]+(?<constraints>.+?))?[ \\t]*(?:,[ \\t]*)?(?:--.*)?[ \\t]*$`,
     'gmi'
 );
-console.log('table_column_pattern', TABLE_COLUMN_PATTERN);
 
 /**
  * Matches table
