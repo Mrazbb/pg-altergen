@@ -5,6 +5,8 @@ CREATE TABLE "public"."tbl_movie" (
     -- MAIN FIELDS
     "title" TEXT NOT NULL,
     "description" TEXT,
+    "rating" NUMERIC(3, 1),
+    "images" TEXT[],
 
     -- DATES
     "dtreleased" TIMESTAMP,

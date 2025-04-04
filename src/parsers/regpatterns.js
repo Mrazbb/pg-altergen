@@ -43,11 +43,12 @@ for (let i = 0; i < 10; i++) {
  */
 const TABLE_COLUMN_PATTERN = new RegExp(
     `^[ \\t]*"(?<name>\\w+)"\\s+` +                // capture the column name
-    `((?<type>(${POSTGRES_TYPES.sort((a, b) => b.length - a.length).join('|')})` + // capture the data type
-    `(\\(.+\\))?)(\\(\\d\\))?(?:\\[\\])*)` + 
+    `(?<type>(?:${POSTGRES_TYPES.sort((a, b) => b.length - a.length).join('|')})` +
+    `(?:\\(.+\\))?(?:\\(\\d\\))?(?:\\[\\])*)` +
     `(?:[ \\t]+(?<constraints>.+?))?[ \\t]*(?:,[ \\t]*)?(?:--.*)?[ \\t]*$`,
     'gmi'
 );
+console.log('table_column_pattern', TABLE_COLUMN_PATTERN);
 
 /**
  * Matches table
