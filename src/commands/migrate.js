@@ -30,6 +30,7 @@ async function migrateCommand(config) {
         await DATA.query(alterFile).promise();
         console.timeEnd('Migration time');
         console.log('Migration complete with no errors.');
+        process.exit(0);
         return;
     } catch (e) {
         console.log(e);
