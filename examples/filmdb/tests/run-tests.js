@@ -38,7 +38,7 @@ async function main() {
     if (!postgresRunning) {
       console.log('Starting Postgres container...');
       try {
-        execSync('docker-compose up -d', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+        execSync('docker compose up -d', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
         console.log('Postgres container started.');
         
         // Wait for PostgreSQL to be ready

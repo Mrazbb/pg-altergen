@@ -1,27 +1,27 @@
 const fs = require('fs');
 const path = require('path');
 const sql_directory = path.join(__dirname, '../sql');
+const { fromRoot } = require('./paths');
 
 function listfiles (type, sourcetype='source_dir', uniquename=false) {
     // source (source_dir, additional_source_dirs, all) 
 
-    var dirs = [];
-    
+    var dirs = [ fromRoot('src/sql') ];
+
     var files = [];
     // source directories
     if ( sourcetype === 'source_dir') { // only source directory
-        dirs = [ config[ 'source_dir' ] ];
+        dirs = dirs.concat([ config[ 'source_dir' ] ]);
 
     } else if (sourcetype === 'additional_source_dirs') { // additional source directories
-        dirs = config['additional_source_dirs'];
+        dirs = dirs.concat(config['additional_source_dirs']);
 
     } else if (sourcetype === 'all') { // all source directories
-        dirs = [ config[ 'source_dir' ] ].concat(config['additional_source_dirs']);
+        dirs = dirs.concat([ config[ 'source_dir' ] ].concat(config['additional_source_dirs']));
 
     } else {
         throw new Error('Invalid source type: ' + sourcetype);
     }
-    
     
     let items = null; 
     let directory = null;

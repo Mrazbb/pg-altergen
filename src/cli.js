@@ -16,7 +16,8 @@ const SQL_OBJECT_TYPES = {
     types: '08_types',
     extensions: '09_extensions',
     inserts: '10_inserts',
-    updates: '11_updates'
+    updates: '11_updates',
+    migrations: '12_migrations'
 };
 
 

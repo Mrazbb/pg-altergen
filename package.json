@@ -30,6 +30,7 @@
         "versioning"
     ],
     "dependencies": {
+        "crypto": "^1.0.1",
         "csv-parser": "^3.1.0",
         "querybuilderpg": "^1.0.24",
         "total5": "^0.0.4"

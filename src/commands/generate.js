@@ -10,6 +10,8 @@ const procedures = require('../processors/procedures');
 const inserts = require('../processors/inserts');
 const updates = require('../processors/updates');
 const indexes = require('../processors/indexes');
+const migrations = require('../processors/migrations');
+
 
 /**
  * generateCommand:
@@ -61,6 +63,10 @@ async function generateCommand(config) {
     const update_files = files.listfiles('updates', 'all');
     let updates_res = await updates.generate(update_files);
 
+    // MIGRATIONS
+    const migration_files = files.listfiles('migrations', 'all');
+    let migrations_res = await migrations.generate(migration_files);
+
     // GENERATE
     let schemas_res = schemas.generate();
     let tables_res = tables.generate();
@@ -90,6 +96,8 @@ async function generateCommand(config) {
         ...other_res,
         ...inserts_res,
         ...updates_res,
+        ...migrations_res,
+
     ].join('\n-- step\n') + '\n-- step\n';
 
     // Final version label + note
