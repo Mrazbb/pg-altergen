@@ -92,7 +92,7 @@ async function generate(files) {
                 -- Register migration: ${migration.id}
                 INSERT INTO altergen.tbl_migrations (queryid, query, checksum, comment, dtexecuted)
                 VALUES ('${migration.id}', $migration_sql$${migration.query}$migration_sql$, '${migration.checksum}', '${migration.comment}', NULL)
-                ON CONFLICT (id) DO NOTHING;
+                ON CONFLICT (queryid) DO NOTHING;
             `;
             statements.push(insertStmt);
         });
