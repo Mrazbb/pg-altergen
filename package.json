@@ -1,6 +1,6 @@
 {
     "name": "pg-altergen",
-    "version": "3.1.1",
+    "version": "3.1.2",
     "main": "index.js",
     "bin": {
         "pg-altergen": "./bin/cli"
@@ -32,6 +32,7 @@
     "dependencies": {
         "crypto": "^1.0.1",
         "csv-parser": "^3.1.0",
+        "dotenv": "^16.5.0",
         "querybuilderpg": "^1.0.24",
         "total5": "^0.0.4"
     },

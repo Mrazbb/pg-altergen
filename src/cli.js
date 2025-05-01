@@ -1,5 +1,6 @@
 
 require('total5');
+const dotenv = require('dotenv');
 
 const { generateCommand } = require('./commands/generate');
 const { migrateCommand } = require('./commands/migrate');
@@ -77,15 +78,28 @@ async function runCLI(argv) {
 }
 
 /**
- * Minimal config loading from CLI args
- * Example usage:  --config altergen.json --postgres user:pass@host/db ...
+ * Minimal config loading from CLI args, .env file, and altergen.json
+ * Priority: CLI args > altergen.json > .env
  */
 function loadConfig(args) {
     let config = {};
+    
+    // First, load from CLI args
     for (let i = 0; i < args.length; i++) {
         if (args[i].startsWith('--') && args.length > i + 1) {
-            config[ args[i].replace(/^--/, '') ] = args[i + 1];
+            config[args[i].replace(/^--/, '')] = args[i + 1];
             i++;
+        }
+    }
+
+    // try to load from .env file
+    const env = dotenv.config();
+
+    if (env?.parsed) {
+        for (let key in env.parsed) {
+            if (key.startsWith('altergen_')) {
+                config[key.replace('altergen_', '')] = env.parsed[key];
+            }
         }
     }
 
@@ -94,19 +108,23 @@ function loadConfig(args) {
         config.config = 'altergen.json';
     }
 
-    // Merge JSON config file if found
+    // Try to load from config file (altergen.json)
+    let fileJsonLoaded = false;
     let data;
     try {
         data = fs.readFileSync(config.config, 'utf8');
+        const fileJson = JSON.parse(data);
+        for (let key in fileJson) {
+            // Only set if not already set by CLI args
+            if (!config[key]) {
+                config[key] = fileJson[key];
+            }
+        }
+        fileJsonLoaded = true;
     } catch (e) {
         console.log(`Config file not found: ${config.config}`);
-        process.exit(1);
     }
 
-    const fileJson = JSON.parse(data);
-    for (let key in fileJson) {
-        config[key] = fileJson[key];
-    }
 
     // Provide a fallback for the final output file
     if (!config.output_file) {

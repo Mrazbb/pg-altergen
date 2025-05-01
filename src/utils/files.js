@@ -62,8 +62,27 @@ function listfiles (type, sourcetype='source_dir', uniquename=false) {
     return files;
 }
 
+/**
+ * Writes `content` to `filePath`, creating any missing directories along the way.
+ *
+ * @param {string} filePath  — e.g. './some/nested/folder/file.txt'
+ * @param {string|Buffer} content
+ * @param {Object} [options] — passed through to fs.writeFileSync
+ */
+function writeFileRecursive(filePath, content, options = {}) {
+    // 1. Figure out the directory part
+    const dir = path.dirname(filePath);
+  
+    // 2. Make the directory (and parents) if it doesn’t exist
+    fs.mkdirSync(dir, { recursive: true });
+  
+    // 3. Write the file
+    fs.writeFileSync(filePath, content, options);
+}
+
 
 
 
 
 module.exports.listfiles = listfiles;
+module.exports.writeFileRecursive = writeFileRecursive;

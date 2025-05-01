@@ -1,2 +1,0 @@
-id;query;comment
-09m;"UPDATE public.tbl_movie SET dtreleased = NOW() WHERE dtreleased IS NULL";update tbl_movie

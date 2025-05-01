@@ -5,3 +5,4 @@ package-lock.json
 .vscode/tasks.json
 examples/**/alter.sql
 
+examples/*/data/
