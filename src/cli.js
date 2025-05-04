@@ -94,6 +94,7 @@ function loadConfig(args) {
 
     // try to load from .env file
     const env = dotenv.config();
+    console.log('env', env);
 
     if (env?.parsed) {
         for (let key in env.parsed) {
@@ -107,6 +108,7 @@ function loadConfig(args) {
     if (!config.config) {
         config.config = 'altergen.json';
     }
+    console.log('config', config);
 
     // Try to load from config file (altergen.json)
     let fileJsonLoaded = false;
