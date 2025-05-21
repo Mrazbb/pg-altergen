@@ -335,33 +335,85 @@ DELETE FROM ${table_name};`);
 async function generate(files) {
     let all_sql_statements = [];
 
-    files.sort();
-
-    for (const file_path of files) {
-        if (path.extname(file_path).toLowerCase() !== '.csv') continue;
+    // 1. Create an array of objects with file path, resolved table name, and dependency order
+    const files_with_table_info = files.map(file_path => {
+        if (path.extname(file_path).toLowerCase() !== '.csv') {
+            // Assign a very high order so non-CSV files (if any passed) are effectively ignored or sorted last
+            return { filePath: file_path, targetTableName: null, order: Infinity, isCsv: false };
+        }
 
         const base_name = path.basename(file_path, '.csv');
-        let default_table_name = base_name;
+        let resolved_table_name = base_name; // Default if no schema in filename and not in MAIN.tables
 
-        const table_meta_by_fqn = typeof MAIN !== 'undefined' && MAIN.tables ? MAIN.tables.findItem('name', base_name) : null;
-        const table_meta_by_tn = typeof MAIN !== 'undefined' && MAIN.tables ? MAIN.tables.findItem('table_name', base_name) : null;
-
-
-        if (table_meta_by_fqn) {
-            default_table_name = table_meta_by_fqn.name;
-        } else if (table_meta_by_tn && table_meta_by_tn.schema_name) { 
-            default_table_name = `${table_meta_by_tn.schema_name}.${table_meta_by_tn.table_name}`;
-        } else {
-            if (!base_name.includes('.')) {
-                default_table_name = `public.${base_name}`;
-                console.warn(`Warning: No schema found for ${base_name} in MAIN.tables, defaulting to public.${base_name}. Consider using a JSON config or ensuring table is in MAIN.tables with schema.`);
+        // Attempt to resolve the fully qualified table name
+        if (typeof MAIN !== 'undefined' && MAIN.tables) {
+            // Check if base_name is already a fully qualified name (e.g., "schema.table")
+            const table_meta_by_fqn = MAIN.tables.findItem('name', base_name);
+            if (table_meta_by_fqn) {
+                resolved_table_name = table_meta_by_fqn.name;
+            } else {
+                // Check if base_name is just a table name, try to find it and prepend schema
+                const table_meta_by_tn = MAIN.tables.findItem('table_name', base_name);
+                if (table_meta_by_tn && table_meta_by_tn.schema_name) {
+                    resolved_table_name = `${table_meta_by_tn.schema_name}.${table_meta_by_tn.table_name}`;
+                } else if (!base_name.includes('.')) {
+                    // Default to public schema if not found and no schema in filename
+                    resolved_table_name = `public.${base_name}`;
+                }
             }
+        } else if (!base_name.includes('.')) {
+             resolved_table_name = `public.${base_name}`;
+        }
+
+
+        let order = Infinity; // Default order for tables not found or if MAIN.tables is unavailable
+        if (typeof MAIN !== 'undefined' && MAIN.tables) {
+            const table_in_main = MAIN.tables.findItem('name', resolved_table_name);
+            if (table_in_main && typeof table_in_main.order === 'number') {
+                order = table_in_main.order;
+            } else {
+                // Optional: Warn if a CSV's table is not found or lacks order in MAIN.tables
+                // console.warn(`Warning: Table ${resolved_table_name} (from ${file_path}) not found in MAIN.tables or has no order. Will be processed based on filename after ordered tables.`);
+            }
+        } else {
+            // Optional: Warn if MAIN.tables is not available for sorting
+            // console.warn("Warning: MAIN.tables not available for dependency-based sorting of CSV updates. Using alphabetical order as fallback.");
+        }
+        return { filePath: file_path, targetTableName: resolved_table_name, order: order, isCsv: true };
+    });
+
+    // 2. Sort files: primarily by dependency order, secondarily by file path (for stability and fallback)
+    files_with_table_info.sort((a, b) => {
+        if (a.order !== b.order) {
+            return a.order - b.order;
+        }
+        // If orders are the same (e.g., both Infinity, or same dependency level), sort by file path
+        if (a.filePath && b.filePath) {
+            return a.filePath.localeCompare(b.filePath);
+        }
+        return 0; // Should not happen if filePaths are always present
+    });
+
+    // 3. Process sorted files
+    for (const file_info of files_with_table_info) {
+        if (!file_info.isCsv) {
+            continue; // Skip non-CSV files
+        }
+
+        const file_path = file_info.filePath;
+        const resolved_target_table_name = file_info.targetTableName;
+
+        if (!resolved_target_table_name) {
+             console.error(`Error: Could not determine target table for ${file_path} after sorting. Skipping.`);
+             all_sql_statements.push(`-- ERROR: Could not determine target table for ${file_path}. Skipping.`);
+             continue;
         }
 
         try {
-            const file_statements = await generate_statements_from_csv(file_path, default_table_name);
+            // Pass the already resolved table name to generate_statements_from_csv
+            const file_statements = await generate_statements_from_csv(file_path, resolved_target_table_name);
             if (file_statements.length > 0) {
-                all_sql_statements.push(`-- Processing CSV: ${path.basename(file_path)}`);
+                all_sql_statements.push(`-- Processing CSV: ${path.basename(file_path)} (Table: ${resolved_target_table_name}, Order: ${file_info.order === Infinity ? 'N/A' : file_info.order})`);
                 const combined_sql_block_for_file = file_statements
                     .map(s => s.trim())
                     .filter(s => s.length > 0)
