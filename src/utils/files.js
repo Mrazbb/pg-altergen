@@ -37,7 +37,6 @@ function listfiles (type, sourcetype='source_dir', uniquename=false) {
             }
 
             directory = path.join(dir, folder);
-
             if(!fs.existsSync(directory) || !directory) {
                 continue;
             }
@@ -53,11 +52,13 @@ function listfiles (type, sourcetype='source_dir', uniquename=false) {
         }
 
     }
-    
     // remove duplicates base on file name and keep the last one
-    files = files.reverse().filter((file, index, self) => {
-        return self.findIndex(t => t.includes(path.basename(file))) === index;
-    });
+    // files = files.reverse().filter((file, index, self) => {
+    //     console.log('file', file);
+    //     // it has to be a full name of the file
+
+    //     return self.findIndex(t => 
+    // });
 
     return files;
 }

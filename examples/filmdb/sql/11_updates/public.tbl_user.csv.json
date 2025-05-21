@@ -1,0 +1,15 @@
+{
+  "table_name": "public.tbl_user",
+  "mode": "conditional_upsert",
+  "lookup_keys": ["email"],
+  "update_target_key_column_db": "id",
+  "update_target_key_column_csv": "id",
+  "delete_missing_rows": false,
+  "columns": {
+    "email": { "db_column": "email", "insert": true, "update": true },
+    "id": { "db_column": "id", "insert": true, "update": false },
+    "username": { "db_column": "username", "insert": true, "update": true },
+    "fullname": { "db_column": "fullname", "insert": true, "update": true },
+    "isactive": { "db_column": "isactive", "insert": true, "update": true }
+  }
+}

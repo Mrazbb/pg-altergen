@@ -4,9 +4,9 @@ const fs = require('fs');
 const files = require('../utils/files');
 const schemas = require('../processors/schemas');
 const tables = require('../processors/tables');
+const extensions = require('../processors/extensions');
+const types = require('../processors/types');
 const others = require('../processors/others');
-const functions = require('../processors/functions');
-const procedures = require('../processors/procedures');
 const inserts = require('../processors/inserts');
 const updates = require('../processors/updates');
 const indexes = require('../processors/indexes');
@@ -26,6 +26,14 @@ async function generateCommand(config) {
     const schema_files = files.listfiles('schemas', 'all');
     schemas.process(schema_files);
 
+    // EXTENSIONS
+    const extension_files = files.listfiles('extensions', 'all');
+    extensions.process(extension_files); // Process extension files
+
+    // TYPES
+    const type_files = files.listfiles('types', 'all');
+    types.process(type_files); // Process type files
+
     // TABLES
     const table_files = files.listfiles('tables', 'all');
     tables.process(table_files);
@@ -42,31 +50,29 @@ async function generateCommand(config) {
     const procedure_files = files.listfiles('procedures', 'all');
     others.process('procedures', procedure_files);
 
-    // TRIGGERS
+    // TRIGGERS TODO
     const trigger_files = files.listfiles('triggers', 'all');
 
-    // SEQUENCES
+    // SEQUENCES TODO
     const sequence_files = files.listfiles('sequences', 'all');
 
-    // TYPES
-    const type_files = files.listfiles('types', 'all');
-
-    // EXTENSIONS
-    const extension_files = files.listfiles('extensions', 'all');
-
-    // INSERTS
+    // INSERTS TODO
     const insert_files = files.listfiles('inserts', 'all');
     let inserts_res = await inserts.generate(insert_files);
 
-    // UPDATES
+    // UPDATES TODO
     const update_files = files.listfiles('updates', 'all');
     let updates_res = await updates.generate(update_files);
 
     // MIGRATIONS
     const migration_files = files.listfiles('migrations', 'all');
     let migrations_res = await migrations.generate(migration_files);
+
+
     // GENERATE
     let schemas_res = schemas.generate();
+    let extensions_res = extensions.generate(); 
+    let types_res = types.generate();
     let tables_res = tables.generate();
     let other_res = others.generate();
     let drop_res = others.drop();
@@ -80,6 +86,12 @@ async function generateCommand(config) {
     alter += [
         // CREATE SCHEMAS
         ...schemas_res,
+
+        // CREATE EXTENSIONS (early on, as other objects might depend on them)
+        ...extensions_res,
+
+        // CREATE TYPES (before tables that might use them)
+        ...types_res,
 
         // DROP
         ...tables_res.drop_constraints,

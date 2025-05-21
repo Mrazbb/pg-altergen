@@ -239,3 +239,109 @@ pg-altergen is released under the [MIT License](https://opensource.org/licenses/
 
 Happy database versioning and migrations!
 
+
+
+## 
+Sample update/public.tbl_user.csv.json
+```js
+{
+  // --- General Settings ---
+  "table_name": "public.your_target_table",
+  // Optional: Specifies the fully qualified target table name.
+  // If omitted, it defaults to the CSV filename (e.g., "public.your_csv_file_name" or "your_csv_file_name").
+
+  "mode": "conditional_upsert",
+  // Required (defaults to "upsert" if omitted).
+  // Defines the operation mode. Possible values:
+  // - "upsert": Inserts new rows or updates existing ones based on "primary_key".
+  // - "insert_only": Only inserts new rows. If a row with the same "primary_key" exists, it's skipped.
+  // - "update_only": Only updates existing rows based on "primary_key". If no match, row is skipped.
+  // - "conditional_upsert": Uses "lookup_keys" to find a row. If found, updates it using "update_target_key_column_db".
+  //                         If not found, inserts a new row. Can also use "update_target_key_column_csv" if provided.
+
+  "delete_missing_rows": true,
+  // Optional (defaults to false).
+  // If true, rows existing in the database but not present in the CSV (matched by "primary_key") will be deleted.
+  // For this to work, "primary_key" must be defined.
+
+  "primary_key": ["csv_id_column", "csv_type_column"],
+  // Required for "upsert", "insert_only", "update_only" modes, and if "delete_missing_rows" is true.
+  // An array of CSV header names that uniquely identify a row.
+  // These CSV headers are used to build the ON CONFLICT target or WHERE clause.
+  // Their corresponding database column names are derived from the "columns" mapping or by direct use of the header name.
+
+  // --- Conditional Upsert Mode Specific Settings (ignored by other modes) ---
+  "lookup_keys": ["email_in_csv", "external_reference_in_csv"],
+  // Required for "conditional_upsert" mode if "update_target_key_column_csv" is not always provided in the CSV.
+  // An array of CSV header names used to query the database to find an existing row.
+
+  "update_target_key_column_db": "id",
+  // Required for "conditional_upsert" mode.
+  // The name of the database column (typically the primary key like "id" or "uuid")
+  // that will be used in the WHERE clause of the UPDATE statement if a row is found via "lookup_keys"
+  // or if "update_target_key_column_csv" provides a value.
+
+  "update_target_key_column_csv": "csv_provides_db_id",
+  // Optional for "conditional_upsert" mode.
+  // A CSV header name. If this column in the CSV has a value, that value is assumed to be the
+  // database key (for the column specified in "update_target_key_column_db") and is used directly to
+  // check for row existence and for the UPDATE's WHERE clause, bypassing the "lookup_keys" search.
+
+  // --- Column Mapping and Behavior ---
+  "columns": {
+    "csv_id_column": {
+      "db_column": "table_pk_id", // Maps "csv_id_column" from CSV to "table_pk_id" in DB.
+      "insert": true,             // This column's value will be included in INSERT statements.
+      "update": false             // This column's value will NOT be included in UPDATE SET clauses. (Good for PKs)
+    },
+    "email_in_csv": {
+      "db_column": "user_email",
+      "insert": true,
+      "update": true
+    },
+    "full_name_from_csv": {
+      "db_column": "contact_name",
+      "insert": true,
+      "update": "if_not_null_in_csv" // Only update "contact_name" if "full_name_from_csv" is not null/empty in the CSV.
+    },
+    "status_flag": {
+      // If "db_column" is omitted, it's assumed to be the same as the CSV header ("status_flag").
+      "insert": true,
+      "update": true
+    },
+    "notes_field": {
+      "db_column": "description",
+      "insert": true, // Note: 'if_not_null_in_csv' is NOT supported for 'insert' in your script, only boolean.
+      "update": true
+    },
+    "column_to_ignore_in_csv": {
+      "insert": false, // This CSV column will be ignored for INSERTs.
+      "update": false  // This CSV column will be ignored for UPDATEs.
+    },
+    "csv_provides_db_id": { // This CSV column is used by "update_target_key_column_csv"
+      "db_column": "id",  // It maps to the DB 'id' column
+      "insert": true,     // If inserting and this CSV column has a value, it will be used for the 'id' column.
+      "update": false     // Usually, the PK itself is not part of the SET clause in an update.
+    }
+    // If a CSV header is present in the CSV file but NOT listed here in "columns":
+    // - Its "db_column" name will be the CSV header name.
+    // - "insert" will default to true.
+    // - "update" will default to true.
+  },
+
+  // --- Pre/Post Execution SQL ---
+  "pre_execution_sql": [
+    "LOCK TABLE public.your_target_table IN EXCLUSIVE MODE;",
+    "SELECT fn_log_csv_processing_start('your_csv_file_name.csv');"
+  ],
+  // Optional: An array of SQL statements to be executed *before* any row processing from the CSV begins.
+
+  "post_execution_sql": [
+    "ANALYZE public.your_target_table;",
+    "REFRESH MATERIALIZED VIEW CONCURRENTLY public.some_summary_view;",
+    "SELECT fn_log_csv_processing_end('your_csv_file_name.csv');"
+  ]
+  // Optional: An array of SQL statements to be executed *after* all rows from the CSV have been processed
+  // (and after "delete_missing_rows" if applicable).
+}
+```

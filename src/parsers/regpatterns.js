@@ -14,6 +14,16 @@ const { POSTGRES_TYPES, POSTGRES_CONSTRAINTS } = require('./constants');
 const TABLE_NAME_PATTERN = /CREATE\sTABLE\s(?<name>["._a-zA-Z0-9']+)\s?\(/gmi;
 
 /**
+ * Matches CREATE TYPE ... AS ENUM statements, capturing schema, name, and labels.
+ * Example: CREATE TYPE "public"."my_enum" AS ENUM ('val1', 'val2', 'val3');
+ * Example: CREATE TYPE public.my_enum AS ENUM ('val1', 'val2');
+ * Example: CREATE TYPE my_enum AS ENUM ('val1'); -- Assumes default schema later
+ */
+const TYPE_ENUM_PATTERN =
+    /CREATE\s+TYPE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:(?<schema>\"?[\w\s-]+\"?)\.)?(?<name>\"?[\w\s-]+\"?)\s+AS\s+ENUM\s*\((?<labels>[^)]+)\)\s*;/gmi;
+
+
+/**
  * Matches lines describing an end constraint.
  * Example match: CONSTRAINT "my_constraint_name" FOREIGN KEY (...)
  */
@@ -59,7 +69,7 @@ const TABLE_CONSTRAINT_PATTERN = /^\s*(CONSTRAINT\s*"(?<name>\w*)"*.+?),?$/gmi;
  * Matches primary key definitions, capturing the columns inside the parentheses.
  * Example match: PRIMARY KEY("id","another_col")
  */
-const PRIMARY_KEY_NEWLINE_PATTERN = /^\s*PRIMARY\sKEY\s*\((?<columns>.+?)\)\s*$/gmi;
+const PRIMARY_KEY_NEWLINE_PATTERN = /^\s*PRIMARY\sKEY\s*\((?<columns>.+?)\)/gmi;
 
 /**
  * Matches foreign key definitions, capturing the local key, reference schema, reference table, and reference key.
@@ -94,6 +104,7 @@ module.exports = {
     FOREIGN_KEY_PATTERN,
     OTHERS_NAMES_PATTERN,
     OTHERS_DEPENDENCIES_PATTERN,
-    TABLE_CONSTRAINT_PATTERN
+    TABLE_CONSTRAINT_PATTERN,
+    TYPE_ENUM_PATTERN
 };
 

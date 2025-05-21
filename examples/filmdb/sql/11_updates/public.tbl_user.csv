@@ -1,0 +1,5 @@
+email;username;fullname;isactive
+admin@example.com;admin;Administrator;false
+user1@example.com;userone;User One;false
+user2@example.com;usertwo;User Two;false
+inactiveuser@example.com;olduser;Old User;false

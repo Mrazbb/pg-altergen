@@ -1,171 +1,383 @@
-/**
- * updates.js
- *
- * Reads semicolon-separated CSV files and generates SQL UPDATE statements 
- * to be included in an "update script".
- *
- * The main function, generate(), scans a specified CSV folder for files, and 
- * converts each file's rows into single-row UPDATE statements.
- *
- * Usage within your generateCommand:
- *  1. Call updatecsv.generate() to get an array of SQL statements (strings).
- *  2. Append these statements into your final "update.sql" output.
- */
-
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
 
-/**
- * Reads a single CSV file (semicolon-separated) and converts it into a list
- * of UPDATE statements for the target table.
- *
- * @param {string} csvFilePath - Full path to the CSV file.
- * @param {string} tableName - Fully qualified table name (e.g., public.tbl_movie).
- * @returns {Promise<string[]>} - Promise resolving to an array of SQL statements.
- */
-function generateUpdateStatementsFromCSV(csvFilePath, tableName) {
-    return new Promise((resolve, reject) => {
-        const rows = [];
-        let headers = [];
+// Helper to load JSON config if it exists
+async function load_csv_config(csv_file_path) {
+    const config_path_json_ext = csv_file_path + '.json';
+    const config_path_short_json = csv_file_path.replace(path.extname(csv_file_path), '.json');
+    let csv_config = {};
 
-        fs.createReadStream(csvFilePath)
+    if (fs.existsSync(config_path_json_ext)) {
+        try {
+            csv_config = JSON.parse(fs.readFileSync(config_path_json_ext, 'utf8'));
+        } catch (err) {
+            console.warn(`Warning: Error parsing JSON config ${config_path_json_ext}: ${err.message}`);
+        }
+    } else if (fs.existsSync(config_path_short_json)) {
+        try {
+            csv_config = JSON.parse(fs.readFileSync(config_path_short_json, 'utf8'));
+        } catch (err) {
+            console.warn(`Warning: Error parsing JSON config ${config_path_short_json}: ${err.message}`);
+        }
+    }
+    return csv_config;
+}
+
+function generate_sql_value(value) {
+    if (value === null || value === undefined || String(value).toUpperCase() === 'NULL') {
+        return 'NULL';
+    }
+    return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+async function generate_statements_from_csv(csv_file_path, default_table_name) {
+    const csv_config = await load_csv_config(csv_file_path);
+
+    const table_name = csv_config.table_name || default_table_name;
+    const mode = csv_config.mode || 'upsert';
+    const delete_missing_rows = csv_config.delete_missing_rows || false;
+
+    // Determine the effective key columns for operations, including delete_missing_rows
+    let effective_keys_for_operation = []; // This will hold the CSV headers to use
+
+    if (mode === 'conditional_upsert') {
+        if (delete_missing_rows) {
+            if (csv_config.lookup_keys && csv_config.lookup_keys.length > 0) {
+                effective_keys_for_operation = csv_config.lookup_keys;
+            } else {
+                console.warn(`[${table_name}] 'delete_missing_rows' is true for 'conditional_upsert' mode, but 'lookup_keys' are not defined in config. Deletion cannot be performed based on lookup_keys.`);
+                // delete_missing_rows will effectively be false for this run if lookup_keys are missing
+            }
+        }
+        // For conditional_upsert, the main operation doesn't rely on a single "primary_key" in the same way,
+        // so key_columns_for_operation (used by standard modes) isn't strictly needed for the upsert part itself.
+    } else { // For 'upsert', 'insert_only', 'update_only'
+        if (csv_config.primary_key && csv_config.primary_key.length > 0) {
+            effective_keys_for_operation = csv_config.primary_key;
+        } else {
+            const table_meta = typeof MAIN !== 'undefined' && MAIN.tables ? MAIN.tables.findItem('name', table_name) : null;
+            if (table_meta && table_meta.primary_keys && table_meta.primary_keys.length > 0) {
+                effective_keys_for_operation = table_meta.primary_keys;
+            } else {
+                console.error(`Error (mode: ${mode}): No key columns (primary_key in JSON or from MAIN.tables) defined for table ${table_name}. Skipping ${csv_file_path}.`);
+                return [];
+            }
+        }
+        if (effective_keys_for_operation.length === 0) {
+            console.error(`Error: Critical (mode: ${mode}) - No key columns for operation on table ${table_name}. Cannot process ${csv_file_path}.`);
+            return [];
+        }
+    }
+    // key_columns_for_operation is specifically for standard modes' ON CONFLICT/WHERE.
+    // effective_keys_for_operation will be used for delete_missing_rows logic universally.
+    const key_columns_for_standard_modes = (mode !== 'conditional_upsert') ? effective_keys_for_operation : [];
+
+
+    return new Promise((resolve, reject) => {
+        const csv_rows = [];
+        let csv_headers = [];
+        const sql_statements = [];
+        // const present_key_values_in_csv = new Set(); // This Set might not be needed if we build the NOT IN list directly
+
+        if (csv_config.pre_execution_sql && Array.isArray(csv_config.pre_execution_sql)) {
+            sql_statements.push(...csv_config.pre_execution_sql);
+        }
+
+        fs.createReadStream(csv_file_path)
             .pipe(csv({ separator: ';' }))
             .on('headers', (hdrs) => {
-                headers = hdrs.map(h => h.trim());
+                csv_headers = hdrs.map(h => h.trim());
             })
             .on('data', (data) => {
-                const rowData = {};
-                headers.forEach((col) => {
-                    rowData[col] = data[col] ?? '';
+                const row_data = {};
+                csv_headers.forEach((col_header) => {
+                    row_data[col_header] = data[col_header] === '' ? null : data[col_header];
                 });
-                rows.push(rowData);
+                csv_rows.push(row_data);
+
+                // No need to populate present_key_values_in_csv here anymore,
+                // as we'll build the SQL NOT IN clause directly from csv_rows at the end.
             })
-            .on('end', () => {
-                if (!rows.length) {
-                    return resolve([]);
-                }
-
-                const updates = [];
-
-                // Retrieve primary key columns from MAIN
-                let primary_keys = [];
-                const tableMeta = MAIN.tables.findItem('name', tableName);
-                if (!tableMeta) {
-                    console.warn(`No table metadata found in MAIN for table: ${tableName}.`);
-                } else {
-                    primary_keys = tableMeta.primary_keys || [];
-                }
-
-                rows.forEach(row => {
-                    // Build the columns and values for the INSERT
-                    const insertColumns = headers.map(h => `"${h}"`).join(', ');
-                    const insertValues = headers.map(h => {
-                        const val = (row[h] ?? '').replace(/'/g, "''");
-                        return `'${val}'`;
-                    }).join(', ');
-                    // update table set col1 = val1, col2 = val2, ...
-                    const update_values = headers.map(h => {
-                        const val = `"${h}" = '${row[h]}'`;
-                        return val;
-                    }).join(', ');
-
-                    // update table set col1 = val1, col2 = val2, ...
-                    const updateValues = headers.map(h => {
-                        const val = (row[h] ?? '').replace(/'/g, "''");
-                        return `"${h}" = '${val}'`;
-                    }).join(', ');
-
-                    const updateCondition = primary_keys.length
-
-                    // Build the ON CONFLICT updates (only for non-PK cols)
-                    const onConflictUpdates = headers
-                        .filter(h => !primary_keys.includes(h))
-                        .map(h => `"${h}" = EXCLUDED."${h}"`)
-                        .join(', ');
-                    // const updates = headers.filter(h => !primary_keys.includes(h)).
-                    
-
-                    // You need a unique constraint (or primary key) on primary_keys
-                    // for ON CONFLICT (primary_keys...) to work.
-                    // e.g., ON CONFLICT ("id") or ON CONFLICT ("colA","colB")
-                    const conflictClause = primary_keys.length
-                        ? '(' + primary_keys.map(pk => `"${pk}"`).join(', ') + ')'
-                        : ''; // Handle edge cases where there might be no PK
-
-                    let upsertStmt = '';
-
-                    if (!conflictClause) {
-                        console.warn(`Skipping row in ${csvFilePath}, no primary keys found for ${tableName}.`);
-                    } else if (config.insert_if_not_exists) {
-                        upsertStmt = `
-                            INSERT INTO ${tableName} (${insertColumns})
-                            VALUES (${insertValues})
-                            ON CONFLICT ${conflictClause}
-                            DO UPDATE
-                               SET ${onConflictUpdates};
-                        `;
-                        updates.push(upsertStmt);
-                    } else {
-                        updates.push(`UPDATE ${tableName} SET ${updateValues} WHERE ${primary_keys.map(pk => `"${pk}"`).join(', ')} = ${primary_keys.map(pk => `'${row[pk]}'`).join(', ')};`);
+            .on('end', async () => {
+                if (!csv_rows.length && !delete_missing_rows) {
+                    if (csv_config.post_execution_sql && Array.isArray(csv_config.post_execution_sql)) {
+                        sql_statements.push(...csv_config.post_execution_sql);
                     }
-                });
+                    return resolve(sql_statements);
+                }
 
-                resolve(updates);
+                for (const row of csv_rows) {
+                    if (mode === 'conditional_upsert') {
+                        // ... (conditional_upsert logic remains largely the same)
+                        // It uses csv_config.lookup_keys, update_target_db_col, etc. internally
+                        const lookup_keys_csv = csv_config.lookup_keys;
+                        const update_target_db_col = csv_config.update_target_key_column_db;
+                        const update_target_csv_header = csv_config.update_target_key_column_csv;
+
+                        if (!lookup_keys_csv || lookup_keys_csv.length === 0) {
+                            console.warn(`[${table_name}] Skipping row for conditional_upsert: 'lookup_keys' missing in config.`);
+                            continue;
+                        }
+                        if (!update_target_db_col) {
+                            console.warn(`[${table_name}] Skipping row for conditional_upsert: 'update_target_key_column_db' missing in config.`);
+                            continue;
+                        }
+                        
+                        const table_meta_for_type = typeof MAIN !== 'undefined' && MAIN.tables ? MAIN.tables.findItem('name', table_name) : null;
+                        const target_col_meta = table_meta_for_type?.columns.find(c => c.name === update_target_db_col);
+                        
+                        let actual_plpgsql_variable_type = 'INTEGER'; 
+                        if (target_col_meta && target_col_meta.type) {
+                            const type_from_metadata = String(target_col_meta.type).toUpperCase();
+                            if (type_from_metadata === 'SERIAL') {
+                                actual_plpgsql_variable_type = 'INTEGER';
+                            } else if (type_from_metadata === 'BIGSERIAL') {
+                                actual_plpgsql_variable_type = 'BIGINT';
+                            } else if (type_from_metadata === 'SMALLSERIAL') {
+                                actual_plpgsql_variable_type = 'SMALLINT';
+                            } else {
+                                actual_plpgsql_variable_type = target_col_meta.type;
+                            }
+                        }
+
+                        let plpgsql_block = `DO $PG_ALTERGEN_BLOCK$\nDECLARE\n`;
+                        plpgsql_block += `  v_target_key_value ${actual_plpgsql_variable_type};\n`;
+                        plpgsql_block += `  v_row_exists BOOLEAN := FALSE;\n`;
+                        plpgsql_block += `BEGIN\n`;
+
+                        let provided_target_key_value = null;
+                        if (update_target_csv_header && row[update_target_csv_header] !== null && row[update_target_csv_header] !== undefined) {
+                            provided_target_key_value = generate_sql_value(row[update_target_csv_header]);
+                            plpgsql_block += `  -- Target key value provided in CSV column '${update_target_csv_header}'.\n`;
+                            plpgsql_block += `  v_target_key_value := ${provided_target_key_value};\n`;
+                            plpgsql_block += `  SELECT TRUE INTO v_row_exists FROM ${table_name} WHERE "${update_target_db_col}" = v_target_key_value;\n`;
+                        } else {
+                            plpgsql_block += `  -- Looking up target key value using lookup_keys.\n`;
+                            const lookup_conditions = lookup_keys_csv.map(lk_csv_header => {
+                                const col_map_config = csv_config.columns ? csv_config.columns[lk_csv_header] : null;
+                                const db_col_for_lookup = col_map_config?.db_column || lk_csv_header;
+                                return `"${db_col_for_lookup}" = ${generate_sql_value(row[lk_csv_header])}`;
+                            }).join(' AND ');
+                            plpgsql_block += `  SELECT "${update_target_db_col}" INTO v_target_key_value FROM ${table_name} WHERE ${lookup_conditions};\n`;
+                            plpgsql_block += `  IF FOUND THEN\n    v_row_exists := TRUE;\n  END IF;\n`;
+                        }
+
+                        plpgsql_block += `\n  IF v_row_exists THEN\n    -- Row found (or target key provided and exists), perform UPDATE.\n`;
+                        let update_set_parts = [];
+                        csv_headers.forEach(header => {
+                            const col_map_config = csv_config.columns ? (csv_config.columns[header] || { db_column: header, insert: true, update: true }) : { db_column: header, insert: true, update: true };
+                            const db_col_to_update = col_map_config.db_column || header;
+
+                            if (db_col_to_update === update_target_db_col) return;
+
+                            if (col_map_config.update) {
+                                const sql_val = generate_sql_value(row[header]);
+                                if (col_map_config.update === 'if_not_null_in_csv' && (row[header] === null || row[header] === undefined)) {
+                                    // Skip
+                                } else {
+                                    update_set_parts.push(`      "${db_col_to_update}" = ${sql_val}`);
+                                }
+                            }
+                        });
+                        if (update_set_parts.length > 0) {
+                            plpgsql_block += `    UPDATE ${table_name}\n    SET \n${update_set_parts.join(',\n')}\n    WHERE "${update_target_db_col}" = v_target_key_value;\n`;
+                        } else {
+                            plpgsql_block += `    -- No columns configured for update.\n`;
+                        }
+                        plpgsql_block += `  ELSE\n    -- Row not found by lookup_keys (or provided target key does not exist), perform INSERT.\n`;
+                        let insert_db_cols = [];
+                        let insert_csv_vals = [];
+                        csv_headers.forEach(header => {
+                            const col_map_config = csv_config.columns ? (csv_config.columns[header] || { db_column: header, insert: true, update: true }) : { db_column: header, insert: true, update: true };
+                            const db_col_to_insert = col_map_config.db_column || header;
+                            if (col_map_config.insert) {
+                                if (header === update_target_csv_header && provided_target_key_value && db_col_to_insert === update_target_db_col) {
+                                    insert_db_cols.push(`"${db_col_to_insert}"`);
+                                    insert_csv_vals.push(provided_target_key_value);
+                                } else if (header !== update_target_csv_header || !provided_target_key_value) {
+                                    insert_db_cols.push(`"${db_col_to_insert}"`);
+                                    insert_csv_vals.push(generate_sql_value(row[header]));
+                                }
+                            }
+                        });
+                        if (insert_db_cols.length > 0) {
+                            plpgsql_block += `    INSERT INTO ${table_name} (${insert_db_cols.join(', ')})\n    VALUES (${insert_csv_vals.join(', ')});\n`;
+                        } else {
+                            plpgsql_block += `    -- No columns configured for insert.\n`;
+                        }
+                        plpgsql_block += `  END IF;\n`;
+                        plpgsql_block += `END $PG_ALTERGEN_BLOCK$;`;
+                        sql_statements.push(plpgsql_block);
+
+                    } else { // Standard modes: 'upsert', 'insert_only', 'update_only'
+                        // Use key_columns_for_standard_modes here
+                        if (!key_columns_for_standard_modes || key_columns_for_standard_modes.length === 0) {
+                            console.warn(`[${table_name}] Skipping row for mode '${mode}' due to missing key_columns_for_standard_modes.`);
+                            continue;
+                        }
+                        let insert_column_names = [];
+                        let insert_sql_values = [];
+                        let update_set_clauses_std = [];
+
+                        csv_headers.forEach(header => {
+                            const column_config = csv_config.columns ? (csv_config.columns[header] || { db_column: header, insert: true, update: true }) : { db_column: header, insert: true, update: true };
+                            const db_column_name = column_config.db_column || header;
+
+                            if (column_config.insert) {
+                                insert_column_names.push(`"${db_column_name}"`);
+                                insert_sql_values.push(generate_sql_value(row[header]));
+                            }
+
+                            if (column_config.update && !key_columns_for_standard_modes.includes(header)) { // header is CSV header here
+                                const sql_update_val = generate_sql_value(row[header]);
+                                if (column_config.update === 'if_not_null_in_csv' && (row[header] === null || row[header] === undefined)) {
+                                    // Skip
+                                } else {
+                                    update_set_clauses_std.push(`"${db_column_name}" = ${sql_update_val}`);
+                                }
+                            }
+                        });
+
+                        const conflict_target_columns_std = key_columns_for_standard_modes.map(k_csv_header => {
+                            const col_map_config = csv_config.columns ? csv_config.columns[k_csv_header] : null;
+                            const db_col_for_conflict = col_map_config?.db_column || k_csv_header;
+                            return `"${db_col_for_conflict}"`;
+                        }).join(', ');
+
+                        const where_pk_clauses_std = key_columns_for_standard_modes.map(k_csv_header => {
+                            const col_map_config = csv_config.columns ? csv_config.columns[k_csv_header] : null;
+                            const db_col_for_where = col_map_config?.db_column || k_csv_header;
+                            return `"${db_col_for_where}" = ${generate_sql_value(row[k_csv_header])}`;
+                        });
+
+
+                        if (mode === 'insert_only' && insert_column_names.length > 0) {
+                            sql_statements.push(
+                                `INSERT INTO ${table_name} (${insert_column_names.join(', ')}) VALUES (${insert_sql_values.join(', ')}) ON CONFLICT (${conflict_target_columns_std}) DO NOTHING;`
+                            );
+                        } else if (mode === 'update_only' && update_set_clauses_std.length > 0 && where_pk_clauses_std.length > 0) {
+                            sql_statements.push(
+                                `UPDATE ${table_name} SET ${update_set_clauses_std.join(', ')} WHERE ${where_pk_clauses_std.join(' AND ')};`
+                            );
+                        } else if (mode === 'upsert') {
+                            if (insert_column_names.length === 0) continue;
+
+                            let on_conflict_update_set = [];
+                            csv_headers.forEach(header => {
+                                const column_config = csv_config.columns ? (csv_config.columns[header] || { db_column: header, insert: true, update: true }) : { db_column: header, insert: true, update: true };
+                                const db_column_name = column_config.db_column || header;
+                                
+                                if (key_columns_for_standard_modes.includes(header)) return; // header is CSV header
+
+                                if (column_config.update) {
+                                    if (column_config.update === 'if_not_null_in_csv' && (row[header] === null || row[header] === undefined)) {
+                                        // Skip
+                                    } else {
+                                         on_conflict_update_set.push(`"${db_column_name}" = EXCLUDED."${db_column_name}"`);
+                                    }
+                                }
+                            });
+
+                            if (on_conflict_update_set.length > 0) {
+                                sql_statements.push(
+                                    `INSERT INTO ${table_name} (${insert_column_names.join(', ')}) VALUES (${insert_sql_values.join(', ')}) ON CONFLICT (${conflict_target_columns_std}) DO UPDATE SET ${on_conflict_update_set.join(', ')};`
+                                );
+                            } else {
+                                sql_statements.push(
+                                    `INSERT INTO ${table_name} (${insert_column_names.join(', ')}) VALUES (${insert_sql_values.join(', ')}) ON CONFLICT (${conflict_target_columns_std}) DO NOTHING;`
+                                );
+                            }
+                        }
+                    }
+                }
+
+                // MODIFIED delete_missing_rows logic
+                if (delete_missing_rows) {
+                    if (!effective_keys_for_operation || effective_keys_for_operation.length === 0) {
+                        // This warning is now more specific, e.g. if lookup_keys were missing for conditional_upsert.
+                        console.warn(`[${table_name}] Cannot perform delete_missing_rows: Effective key columns (primary_key or lookup_keys) are undefined or empty.`);
+                    } else if (csv_rows.length > 0) {
+                        // Map CSV key headers to their corresponding DB column names
+                        const pk_db_columns_for_delete_sql = effective_keys_for_operation.map(k_csv_header => {
+                             const col_map_config = csv_config.columns ? csv_config.columns[k_csv_header] : null;
+                             return `"${col_map_config?.db_column || k_csv_header}"`; // Use mapped DB column or CSV header
+                        }).join(', ');
+
+                        // For each CSV row, create a tuple of its key values
+                        const pk_tuples_for_sql = csv_rows.map(r =>
+                            `(${effective_keys_for_operation.map(k_csv_header => generate_sql_value(r[k_csv_header])).join(', ')})`
+                        ).join(', ');
+
+                        sql_statements.push(`
+-- Deleting rows from ${table_name} not present in the CSV based on (${effective_keys_for_operation.join(', ')})
+DELETE FROM ${table_name}
+WHERE (${pk_db_columns_for_delete_sql}) NOT IN (VALUES ${pk_tuples_for_sql});`);
+                    } else { // CSV is empty, delete_missing_rows is true
+                         sql_statements.push(`
+-- CSV is empty and delete_missing_rows is true: Deleting all rows from ${table_name}
+DELETE FROM ${table_name};`);
+                    }
+                }
+
+                if (csv_config.post_execution_sql && Array.isArray(csv_config.post_execution_sql)) {
+                    sql_statements.push(...csv_config.post_execution_sql);
+                }
+                resolve(sql_statements);
             })
             .on('error', (err) => {
-                console.error(`Error reading CSV file: ${csvFilePath}`, err);
+                console.error(`Error reading CSV file: ${csv_file_path}`, err);
                 reject(err);
             });
     });
 }
 
-/**
- * Generates the collected UPDATE statements for an array of CSV file paths.
- *
- * @param {string[]} files - Array of CSV file paths.
- * @returns {Promise<string[]>} - Promise resolving to an array of SQL statements.
- */
 async function generate(files) {
-    let statements = [];
+    let all_sql_statements = [];
 
-    // Optionally, sort by table order if desired (similar to inserts.js)
-    files = files.sort((a, b) => {
-        const baseA = path.basename(a).replace('.csv', '');
-        const baseB = path.basename(b).replace('.csv', '');
-        const tableA = MAIN.tables.findItem('name', baseA);
-        const tableB = MAIN.tables.findItem('name', baseB);
+    files.sort();
 
-        // If either table doesn't exist in MAIN, sort them last
-        const orderA = tableA?.order ?? 9999;
-        const orderB = tableB?.order ?? 9999;
+    for (const file_path of files) {
+        if (path.extname(file_path).toLowerCase() !== '.csv') continue;
 
-        return orderA - orderB;
-    });
+        const base_name = path.basename(file_path, '.csv');
+        let default_table_name = base_name;
 
-    // For each CSV file, generate the update statements
-    for (const filePath of files) {
-        const baseName = path.basename(filePath).replace('.csv', '');
-        const tableName = baseName; // Here we assume the CSV base name = table name
+        const table_meta_by_fqn = typeof MAIN !== 'undefined' && MAIN.tables ? MAIN.tables.findItem('name', base_name) : null;
+        const table_meta_by_tn = typeof MAIN !== 'undefined' && MAIN.tables ? MAIN.tables.findItem('table_name', base_name) : null;
 
-        let fileUpdates = [];
-        try {
-            fileUpdates = await generateUpdateStatementsFromCSV(filePath, tableName);
-        } catch (err) {
-            console.error(`Failed to generate updates for ${tableName}:`, err);
+
+        if (table_meta_by_fqn) {
+            default_table_name = table_meta_by_fqn.name;
+        } else if (table_meta_by_tn && table_meta_by_tn.schema_name) { 
+            default_table_name = `${table_meta_by_tn.schema_name}.${table_meta_by_tn.table_name}`;
+        } else {
+            if (!base_name.includes('.')) {
+                default_table_name = `public.${base_name}`;
+                console.warn(`Warning: No schema found for ${base_name} in MAIN.tables, defaulting to public.${base_name}. Consider using a JSON config or ensuring table is in MAIN.tables with schema.`);
+            }
         }
 
-        // Append the statements to our main collection
-        // For consistency with the rest of the pipeline, you can add a "-- step" if you wish
-        fileUpdates.forEach(stmt => {
-            statements.push(stmt);
-        });
+        try {
+            const file_statements = await generate_statements_from_csv(file_path, default_table_name);
+            if (file_statements.length > 0) {
+                all_sql_statements.push(`-- Processing CSV: ${path.basename(file_path)}`);
+                const combined_sql_block_for_file = file_statements
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0)
+                    .join(';\n') + ';';
+                
+                all_sql_statements.push(combined_sql_block_for_file);
+            }
+        } catch (err) {
+            console.error(`Failed to generate updates for ${file_path}:`, err);
+            all_sql_statements.push(`-- ERROR: Failed to generate updates for ${file_path}: ${err.message}`);
+        }
     }
 
-    return statements;
+    return all_sql_statements;
 }
 
 module.exports = {
     generate,
-    generateUpdateStatementsFromCSV
-}; 
+};

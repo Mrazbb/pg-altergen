@@ -1,0 +1,11 @@
+{
+    "table_name": "public.tbl_config",
+    "primary_key": ["id"],
+    "mode": "upsert",
+    "delete_missing_rows": false,
+    "columns": {
+      "id":    { "insert": true, "update": false },
+      "type":  { "insert": true, "update": true },
+      "value": { "insert": true, "update": true }
+    }
+  }

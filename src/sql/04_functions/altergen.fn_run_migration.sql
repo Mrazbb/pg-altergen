@@ -18,7 +18,6 @@ BEGIN
             UPDATE altergen.tbl_migrations 
             SET dtexecuted = NOW() 
             WHERE id = v_migration.id;
-            
             RAISE NOTICE 'Executed migration: %', v_migration.id;
         EXCEPTION WHEN OTHERS THEN
             RAISE WARNING 'Error executing migration %: %', v_migration.id, SQLERRM;
