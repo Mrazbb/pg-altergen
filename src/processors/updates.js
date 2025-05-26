@@ -472,6 +472,19 @@ DELETE FROM ${table_name};`);
 }
 
 async function generate(files) {
+  // Check the config flag: config.update could be a boolean true or a string 'true'
+  const shouldRunUpdates =
+    config &&
+    (config.update === true ||
+      String(global.config.update).toLowerCase() === "true");
+
+  if (!shouldRunUpdates) {
+    console.log(
+      "Skipping updates generation: 'config.update' is not set to true.",
+    );
+    return []; // Return empty array, no update statements to generate
+  }
+
   let all_sql_statements = [];
 
   // 1. Create an array of objects with file path, resolved table name, and dependency order
