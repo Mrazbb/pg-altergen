@@ -342,33 +342,18 @@ function drop_column_constraints() {
 function check_dependencies() {
   let created = [];
   let tables = CLONE([...MAIN.tables]);
-  console.log(
-    "Initial tables for dependency check:",
-    JSON.stringify(
-      tables.map((t) => ({ name: t.name, dependencies: t.dependencies })),
-      null,
-      2,
-    ),
-  );
 
   while (tables.length > 0) {
     let i = 0;
     let createdinloop = 0;
-    console.log("--- New iteration in check_dependencies ---");
     while (i < tables.length) {
       let obj = tables[i];
 
       let uncreated = obj.dependencies.filter(
         (dep) => created.indexOf(dep) === -1,
       );
-      console.log(
-        `Table: ${obj.name}, Dependencies: ${JSON.stringify(obj.dependencies)}, Uncreated: ${JSON.stringify(uncreated)}`,
-      );
       if (uncreated.length == 0) {
         created.push(obj.name);
-        console.log(
-          `Added to created: ${obj.name}. Current created: ${JSON.stringify(created)}`,
-        );
         tables.splice(i, 1);
         createdinloop++;
       } else {
@@ -387,7 +372,6 @@ function check_dependencies() {
           2,
         ),
       );
-      console.log("Created so far:", JSON.stringify(created, null, 2));
       for (const table of tables) {
         let missing = table.dependencies.filter(
           (dep) => created.indexOf(dep) === -1,
@@ -401,7 +385,6 @@ function check_dependencies() {
       break;
     }
   }
-  console.log("Final created order:", JSON.stringify(created, null, 2));
   return created;
 }
 

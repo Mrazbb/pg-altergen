@@ -124,7 +124,10 @@ function loadConfig(args) {
     } catch (e) {
         console.log(`Config file not found: ${config.config}`);
     }
-
+    config.additional_source_dirs = config.additional_source_dirs?.split(/[\s,]+/)
+        ?.map(dir => dir.trim())
+        ?.filter(dir => dir !== '')
+        ?.map(dir => fromRoot(dir)) || [];
 
     // Provide a fallback for the final output file
     if (!config.output_file) {
