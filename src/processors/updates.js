@@ -554,7 +554,6 @@ async function generate(files) {
     }
     return 0; // Should not happen if filePaths are always present
   });
-  console.log("files_with_table_info", files_with_table_info);
 
   // 3. Process sorted files
   for (const file_info of files_with_table_info) {
