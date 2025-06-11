@@ -126,8 +126,7 @@ function loadConfig(args) {
     }
     config.additional_source_dirs = config.additional_source_dirs?.split(/[\s,]+/)
         ?.map(dir => dir.trim())
-        ?.filter(dir => dir !== '')
-        ?.map(dir => fromRoot(dir)) || [];
+        ?.filter(dir => dir !== '') || [];
 
     // Provide a fallback for the final output file
     if (!config.output_file) {
