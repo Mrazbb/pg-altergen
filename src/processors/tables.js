@@ -229,6 +229,14 @@ function generate() {
 
     // 3) Column-level constraints
     for (const col of columns) {
+      const defaultConstraint = col.constraints.find((c) =>
+        c.startsWith("DEFAULT"),
+      );
+      const notNullConstraint = col.constraints.find((c) =>
+        c.startsWith("NOT NULL"),
+      );
+
+      // Handle constraints other than DEFAULT and NOT NULL
       for (const constraint of col.constraints) {
         if (constraint.startsWith("PRIMARY KEY")) {
           create_primary_keys.push(
@@ -242,14 +250,26 @@ function generate() {
           table_constraints.push(
             `SELECT create_constraint_if_not_exists('${name.replaceAll('"', "")}', '${table.schema_name}_${table.table_name}_${col.name}_check', 'ALTER TABLE ${name} ADD CONSTRAINT ${table.schema_name}_${table.table_name}_${col.name}_check ${constraint};');`,
           );
-        } else if (
-          constraint.startsWith("DEFAULT") ||
-          constraint.startsWith("NOT NULL")
-        ) {
+        }
+      }
+
+      // Handle DEFAULT and NOT NULL constraints in the correct order
+      if (defaultConstraint) {
+        table_constraints.push(
+          `ALTER TABLE ${name} ALTER COLUMN "${col.name}" SET ${defaultConstraint};`,
+        );
+        if (notNullConstraint) {
+          const defaultValue = defaultConstraint.substring("DEFAULT ".length);
           table_constraints.push(
-            `ALTER TABLE ${name} ALTER COLUMN "${col.name}" SET ${constraint};`,
+            `UPDATE ${name} SET "${col.name}" = ${defaultValue} WHERE "${col.name}" IS NULL;`,
           );
         }
+      }
+
+      if (notNullConstraint) {
+        table_constraints.push(
+          `ALTER TABLE ${name} ALTER COLUMN "${col.name}" SET NOT NULL;`,
+        );
       }
     }
 
