@@ -167,7 +167,7 @@ function parse_column_constraints(rawConstraints) {
   // For more complex constraint parsing (like nested parentheses),
   // you may need more robust regex or a small parser:
   const splitRegex =
-    /\b(CHECK\s*\([^)]*\)|DEFAULT\s+[^ ]+|\bNOT NULL\b|PRIMARY KEY|UNIQUE\b)/gi;
+    /\b(CHECK\s*\([^)]*\)|DEFAULT\s+(?:'[^']*'|"[^"]*"|[^ ]+)|\bNOT NULL\b|PRIMARY KEY|UNIQUE\b)/gi;
   const matches = [];
   let lastIndex = 0;
   let m;
@@ -186,6 +186,31 @@ function parse_column_constraints(rawConstraints) {
   if (suffix) matches.push(suffix);
 
   return matches.filter((str) => str.length > 0);
+}
+
+/**
+ * Helper function to fix DEFAULT constraint values by converting double quotes to single quotes
+ * for string literals in PostgreSQL expressions
+ */
+function fixDefaultConstraintQuotes(defaultConstraint) {
+  if (!defaultConstraint) return defaultConstraint;
+  
+  // Extract the value after "DEFAULT "
+  const defaultPrefix = "DEFAULT ";
+  if (!defaultConstraint.startsWith(defaultPrefix)) return defaultConstraint;
+  
+  const defaultValue = defaultConstraint.substring(defaultPrefix.length)?.trim();
+
+  
+  // If the value is wrapped in double quotes, convert to single quotes
+  if (defaultValue.startsWith('"') && defaultValue.endsWith('"')) {
+    const innerValue = defaultValue.slice(1, -1);
+    // Escape any single quotes in the value
+    const escapedValue = innerValue.replace(/'/g, "''");
+    return `DEFAULT '${escapedValue}'`;
+  }
+  
+  return defaultConstraint;
 }
 
 /**
@@ -255,11 +280,12 @@ function generate() {
 
       // Handle DEFAULT and NOT NULL constraints in the correct order
       if (defaultConstraint) {
+        const fixedDefaultConstraint = fixDefaultConstraintQuotes(defaultConstraint);
         table_constraints.push(
-          `ALTER TABLE ${name} ALTER COLUMN "${col.name}" SET ${defaultConstraint};`,
+          `ALTER TABLE ${name} ALTER COLUMN "${col.name}" SET ${fixedDefaultConstraint};`,
         );
         if (notNullConstraint) {
-          const defaultValue = defaultConstraint.substring("DEFAULT ".length);
+          const defaultValue = fixedDefaultConstraint.substring("DEFAULT ".length);
           table_constraints.push(
             `UPDATE ${name} SET "${col.name}" = ${defaultValue} WHERE "${col.name}" IS NULL;`,
           );

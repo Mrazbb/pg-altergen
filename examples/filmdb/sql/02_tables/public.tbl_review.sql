@@ -6,7 +6,7 @@ CREATE TABLE "public"."tbl_review" (
     -- MAIN FIELDS
     "userid" INTEGER NOT NULL,
     "movieid" INTEGER NOT NULL,
-    "reviewtext" TEXT,
+    "reviewtext" TEXT NOT NULL DEFAULT 'No review text provided.',
     
     -- NUMBERS
     "rating" SMALLINT CHECK ("rating" BETWEEN 0 AND 10),
