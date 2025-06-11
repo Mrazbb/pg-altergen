@@ -1,47 +1,47 @@
 {
-    "name": "pg-altergen",
-    "version": "3.3.14",
-    "main": "index.js",
-    "bin": {
-        "pg-altergen": "./bin/cli"
-    },
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "author": "Marek Mráz",
-    "license": "MIT",
-    "description": "A Node.js CLI tool for managing PostgreSQL schema changes by organizing database objects in SQL files and generating ordered migration scripts with automatic dependency resolution.",
-    "keywords": [
-        "postgresql",
-        "postgres",
-        "pg",
-        "database",
-        "sql",
-        "migration",
-        "schema",
-        "cli",
-        "migration-tool",
-        "database-migration",
-        "schema-migration",
-        "dependency-resolution",
-        "alter",
-        "database-management",
-        "schema-management",
-        "versioning"
-    ],
-    "dependencies": {
-        "crypto": "^1.0.1",
-        "csv-parser": "^3.1.0",
-        "dotenv": "^16.5.0",
-        "querybuilderpg": "^1.0.24",
-        "total5": "^0.0.4"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/Mrazbb/pg-altergen.git"
-    },
-    "bugs": {
-        "url": "https://github.com/Mrazbb/pg-altergen/issues"
-    },
-    "homepage": "https://github.com/Mrazbb/pg-altergen#readme"
+  "name": "pg-altergen",
+  "version": "3.3.15",
+  "main": "index.js",
+  "bin": {
+    "pg-altergen": "./bin/cli"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Marek Mráz",
+  "license": "MIT",
+  "description": "A Node.js CLI tool for managing PostgreSQL schema changes by organizing database objects in SQL files and generating ordered migration scripts with automatic dependency resolution.",
+  "keywords": [
+    "postgresql",
+    "postgres",
+    "pg",
+    "database",
+    "sql",
+    "migration",
+    "schema",
+    "cli",
+    "migration-tool",
+    "database-migration",
+    "schema-migration",
+    "dependency-resolution",
+    "alter",
+    "database-management",
+    "schema-management",
+    "versioning"
+  ],
+  "dependencies": {
+    "crypto": "^1.0.1",
+    "csv-parser": "^3.1.0",
+    "dotenv": "^16.5.0",
+    "querybuilderpg": "^1.0.24",
+    "total5": "^0.0.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mrazbb/pg-altergen.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Mrazbb/pg-altergen/issues"
+  },
+  "homepage": "https://github.com/Mrazbb/pg-altergen#readme"
 }
