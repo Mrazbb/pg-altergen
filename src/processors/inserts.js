@@ -16,7 +16,6 @@ const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
 
-const CSV_FOLDER = '07_csv';  // Adjust if needed (this is just an example path).
 
 /**
  * Reads a single CSV file (semicolon-separated) and converts it into a list 
@@ -105,8 +104,9 @@ async function generate(files) {
         return tableA.order - tableB.order;
     });
 
-
+    console.log('inserts:', files);
     for (const file_path of files) {
+
 
         const base_name = path.basename(file_path).replace('.csv', '');
         const table_name = base_name;
