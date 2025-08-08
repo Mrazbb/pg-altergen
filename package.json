@@ -1,6 +1,6 @@
 {
   "name": "pg-altergen",
-  "version": "3.3.17",
+  "version": "3.3.18",
   "main": "index.js",
   "bin": {
     "pg-altergen": "./bin/cli"
