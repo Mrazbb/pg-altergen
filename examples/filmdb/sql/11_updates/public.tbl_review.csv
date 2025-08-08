@@ -1,0 +1,9 @@
+id;userid;movieid;reviewtext;rating;dtcreated
+1;1;1;This is a review of the movie.;8;2023-05-01 18:00:00
+2;2;1;This is another review of the movie.;7;2023-05-02 18:00:00
+3;3;1;This is a review of the movie by a different user.;6;2023-05-03 18:00:00
+4;4;1;This is a review of the movie by an inactive user.;5;2023-05-04 18:00:00
+5;1;2;This is a review of the second movie.;9;2023-05-05 18:00:00
+6;2;2;This is another review of the second movie.;8;2023-05-06 18:00:00
+7;3;2;This is a review of the second movie by a different user.;7;2023-05-07 18:00:00
+8;4;2;This is a review of the second movie by an inactive user.;6;2023-05-08 18:00:00

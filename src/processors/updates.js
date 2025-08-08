@@ -445,14 +445,14 @@ async function generate_statements_from_csv(csv_file_path, default_table_name) {
               .join(", ");
 
             sql_statements.push(`
--- Deleting rows from ${table_name} not present in the CSV based on (${effective_keys_for_operation.join(", ")})
-DELETE FROM ${table_name}
-WHERE (${pk_db_columns_for_delete_sql}) NOT IN (VALUES ${pk_tuples_for_sql});`);
-          } else {
-            // CSV is empty, delete_missing_rows is true
-            sql_statements.push(`
--- CSV is empty and delete_missing_rows is true: Deleting all rows from ${table_name}
-DELETE FROM ${table_name};`);
+            -- Deleting rows from ${table_name} not present in the CSV based on (${effective_keys_for_operation.join(", ")})
+            DELETE FROM ${table_name}
+            WHERE (${pk_db_columns_for_delete_sql}) NOT IN (VALUES ${pk_tuples_for_sql});`);
+                      } else {
+                        // CSV is empty, delete_missing_rows is true
+                        sql_statements.push(`
+            -- CSV is empty and delete_missing_rows is true: Deleting all rows from ${table_name}
+            DELETE FROM ${table_name};`);
           }
         }
 
