@@ -580,10 +580,18 @@ async function generate(files) {
         file_path,
         resolved_target_table_name,
       );
+      let table_name_without_schema = resolved_target_table_name.split(".")[1];
+      let schema_name = resolved_target_table_name.split(".")[0];
+
+      all_sql_statements.push(
+        `SELECT "altergen"."fn_reset_sequence_min"('${schema_name}', '${table_name_without_schema}', 'id', 100000);`,
+      );
+
       if (file_statements.length > 0) {
         all_sql_statements.push(
           `-- Processing CSV: ${path.basename(file_path)} (Table: ${resolved_target_table_name}, Order: ${file_info.order === Infinity ? "N/A" : file_info.order})`,
         );
+
         const combined_sql_block_for_file =
           file_statements
             .map((s) => s.trim())

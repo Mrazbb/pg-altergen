@@ -7,3 +7,4 @@ id;userid;movieid;reviewtext;rating;dtcreated
 6;2;2;This is another review of the second movie.;8;2023-05-06 18:00:00
 7;3;2;This is a review of the second movie by a different user.;7;2023-05-07 18:00:00
 8;4;2;This is a review of the second movie by an inactive user.;6;2023-05-08 18:00:00
+20;4;2;This is a review of the second movie by an inactive user.;6;2023-05-08 18:00:00

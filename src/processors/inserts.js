@@ -104,7 +104,6 @@ async function generate(files) {
         return tableA.order - tableB.order;
     });
 
-    console.log('inserts:', files);
     for (const file_path of files) {
 
 
